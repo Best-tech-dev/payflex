@@ -84,9 +84,6 @@ export default function LoginScreen() {
       // Clear all AsyncStorage data
       await AsyncStorage.clear();
   
-      // Navigate to the onboarding screen
-      router.replace('/onboarding');
-  
       Alert.alert(
         'Success',
         'App data cleared. Restart the app to see the onboarding screen.',

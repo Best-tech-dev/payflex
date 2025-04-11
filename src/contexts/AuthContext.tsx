@@ -35,9 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === 'active') {
         console.log('App has resumed');
-        // Re-trigger navigation logic when the app resumes
-        if (!navigationState?.key || isLoading) return;
-        setHasInitialNavigation(false); // Reset navigation state
+        // Redirect to the PIN verification screen regardless of the previous state
+        router.replace('/(auth)/pin-verify');
       }
     };
   
@@ -46,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.remove();
     };
-  }, [navigationState?.key, isLoading, isAuthenticated, segments, isPinSet, isPinVerified]);
+  }, []);
 
   // Check for existing token on startup
   useEffect(() => {
