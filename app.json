@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "PayFlex",
+    "slug": "payflex",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/icons/favicon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./src/assets/icons/favicon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.payflex.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "nestjs-payflex.onrender.com": {
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        },
+        "UIBackgroundModes": ["fetch"],
+        "UIRequiresFullScreen": true
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icons/favicon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.payflex.app",
+      "permissions": ["INTERNET"],
+      "networkSecurityConfig": {
+        "cleartextTrafficPermitted": true
+      }
+    },
+    "web": {
+      "favicon": "./src/assets/icons/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "payflex",
+    "newArchEnabled": true
+  }
+}
