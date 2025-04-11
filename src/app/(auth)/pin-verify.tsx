@@ -19,10 +19,10 @@ export default function PinVerifyScreen() {
 
   // Log when the component mounts
   useEffect(() => {
-    console.log('PIN verification screen mounted');
-    return () => {
-      console.log('PIN verification screen unmounted');
-    };
+    // console.log('PIN verification screen mounted');
+    // return () => {
+    //   console.log('PIN verification screen unmounted');
+    // };
   }, []);
 
   const handlePinChange = (value: string) => {
@@ -74,8 +74,19 @@ export default function PinVerifyScreen() {
             // Clear authentication data
             await AsyncStorage.removeItem('access_token');
             await AsyncStorage.removeItem('pin_setup_complete');
+            await AsyncStorage.removeItem('app_pin');
+            await AsyncStorage.removeItem('has_launched');
+
+            // console.log("access_token: ", await AsyncStorage.getItem('access_token'));
+            // console.log("pin_setup_complete: ", await AsyncStorage.getItem('pin_setup_complete'));
+            // console.log("app_pin: ", await AsyncStorage.getItem('app_pin'));
+            // console.log("has_seen_onboarding: ", await AsyncStorage.getItem('has_seen_onboarding'));
+            // console.log("has_launched: ", await AsyncStorage.getItem('has_launched'));
+
             // Navigate to login
-            router.replace('(auth)/login');
+            // router.replace('/onboarding');
+            router.replace('/(auth)/login');
+            // router.replace('/(auth)/pin-setup');
           },
         },
       ]

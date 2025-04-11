@@ -72,8 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle navigation based on auth state
     useEffect(() => {
-      console.log('navigationState?.key:', navigationState?.key);
-    console.log('isLoading:', isLoading);
 
     if (!navigationState?.key) {
       console.warn('Invalid navigation state. Resetting...');
@@ -115,8 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else if (inAuthGroup && !inPinSetup && !inPinVerification) {
             targetRoute = '/(app)/home';
       }
-        } else if (!inOnboarding && !inAuthGroup) {
-          targetRoute = '/(auth)/login';
+        } else {
+          const hasSeenOnboarding = await AsyncStorage.getItem('has_seen_onboarding');
+          if (!hasSeenOnboarding) {
+            targetRoute = '/onboarding'; // Redirect to onboarding if not completed
+          } else {
+            targetRoute = '/(auth)/login'; // Redirect to login if onboarding is complete
+          }
         }
 
         // Only navigate if we have a target route and we're not already there
@@ -154,7 +157,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.data.user);
       setIsAuthenticated(true);
 
-      // Navigation will be handled by the useEffect above
+      console.log("Is pin set: ", isPinSet);
+      console.log("Is pin verified: ", isPinVerified);
+      if(!isPinSet) {
+        router.replace('/(auth)/pin-setup');
+      } else {
+        router.replace('/(auth)/pin-verify');
+      }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -190,10 +199,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  //////////////////////////////////////      From the home Screen
   const logout = async () => {
+    console.log("Logging out...");
     await AsyncStorage.removeItem('access_token');
+    await AsyncStorage.removeItem('pin_setup_complete');
+    // await AsyncStorage.removeItem('@app_pin');
+    console.log("Async Data Available afterclear: ", await AsyncStorage.getAllKeys());
+
     setUser(null);
     setIsAuthenticated(false);
+
+    router.replace('/(auth)/login');
   };
 
   return (

@@ -29,7 +29,11 @@ export function AppPinProvider({ children }: { children: React.ReactNode }) {
       const pin = await AsyncStorage.getItem(PIN_STORAGE_KEY);
       setIsPinSet(!!pin);
       if (!!pin) {
-        setIsPinVerified(true); // Auto-verify PIN on app start
+        console.log('PIN is set. Redirecting to PIN verification...');
+        router.replace('/(auth)/pin-verify'); // Redirect to PIN verification screen
+      } else {
+        console.log('No PIN set. Proceeding to set up pin page...');
+        router.replace('/(auth)/pin-setup'); // Redirect to home screen
       }
     } catch (error) {
       console.error('Error checking PIN status:', error);

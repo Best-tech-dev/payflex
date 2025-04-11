@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('bernardmayowaa@gmail.com');
-  const [password, setPassword] = useState('maximus123');
+  const [password, setPassword] = useState('maximus@01');
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -81,23 +81,23 @@ export default function LoginScreen() {
 
   const clearAppData = async () => {
     try {
+      // Clear all AsyncStorage data
       await AsyncStorage.clear();
-      // Also clear any other storage keys that might be used
-      await AsyncStorage.removeItem('has_seen_onboarding');
-      await AsyncStorage.removeItem('app_pin');
-      await AsyncStorage.removeItem('access_token');
-      
+  
+      // Navigate to the onboarding screen
+      router.replace('/onboarding');
+  
       Alert.alert(
-        'Success', 
-        'App data cleared. Please restart the app to see the onboarding screen.',
+        'Success',
+        'App data cleared. Restart the app to see the onboarding screen.',
         [
           {
             text: 'OK',
             onPress: () => {
-              // Force reload the app by navigating to onboarding
+              // Optionally, you can force the app to navigate to onboarding
               router.replace('/onboarding');
-            }
-          }
+            },
+          },
         ]
       );
     } catch (error) {
@@ -109,6 +109,7 @@ export default function LoginScreen() {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
 
   const StyledSafeAreaView = styled(SafeAreaView);
   const StyledView = styled(View);

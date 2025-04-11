@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Index() {
-  console.log("App State: ", AppState.currentState); // I get this "App State:  inactive" when I open the app
+  // console.log("App State: ", AppState.currentState); // I get this "App State:  inactive" when I open the app
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const { isAuthenticated } = useAuth();
 
@@ -15,12 +15,19 @@ export default function Index() {
 
   const checkFirstLaunch = async () => {
     try {
+      console.log("Async Storage keys: ", await AsyncStorage.getAllKeys());
       const hasLaunched = await AsyncStorage.getItem('hasLaunched');
-      console.log("Has launched:", hasLaunched);
-      // If hasLaunched is null, it means the app is being launched for the first time
+      const hasSeenOnboarding = await AsyncStorage.getItem('has_seen_onboarding');
+  
+      // console.log("Has launched:", hasLaunched);
+      console.log("Has seen onboarding:", hasSeenOnboarding);
+  
       if (hasLaunched === null) {
         // First time launching the app
         await AsyncStorage.setItem('hasLaunched', 'true');
+        setIsFirstLaunch(true);
+      } else if (!hasSeenOnboarding) {
+        // User hasn't completed onboarding
         setIsFirstLaunch(true);
       } else {
         setIsFirstLaunch(false);

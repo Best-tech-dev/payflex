@@ -49,7 +49,7 @@ export default function PinSetupScreen() {
       // Mark that PIN is set up
       await AsyncStorage.setItem('pin_setup_complete', 'true');
       // Navigate to home
-      router.replace('(app)/home');
+      router.replace('(auth)/pin-verify');
     } catch (error) {
       console.error('Error saving PIN:', error);
       Alert.alert('Error', 'Failed to save PIN. Please try again.');
@@ -58,14 +58,14 @@ export default function PinSetupScreen() {
     }
   };
 
-  const handleBack = () => {
-    if (step === 'confirm') {
-      setStep('create');
-      setConfirmPin('');
-    } else {
-      router.back();
-    }
-  };
+  // const handleBack = () => {
+  //   if (step === 'confirm') {
+  //     setStep('create');
+  //     setConfirmPin('');
+  //   } else {
+  //     router.back();
+  //   }
+  // };
 
   return (
     <SafeAreaView style={styles.container}>

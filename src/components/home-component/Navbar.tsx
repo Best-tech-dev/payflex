@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, Modal, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 interface NavbarProps {
   userName: string;
@@ -16,8 +18,11 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
   };
 
   const handleLogoutConfirm = async () => {
+
+    logout();
     setShowLogoutModal(false);
-    await logout();
+    
+    router.replace('/(auth)/login');
   };
 
   const handleLogoutCancel = () => {

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { onboardingSlides, OnboardingSlide } from '@/types/onboarding';
 import { Button } from '@/components/Button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { colors } from '@/theme/colors';
 
 const { width } = Dimensions.get('window');
@@ -11,15 +12,36 @@ const { width } = Dimensions.get('window');
 export default function Onboarding() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-  const handleNext = () => {
+  // const handleNext = async () => {
+  //   if (currentSlideIndex < onboardingSlides.length - 1) {
+  //     setCurrentSlideIndex(currentSlideIndex + 1);
+  //   } else {
+  //     // Mark onboarding as complete
+  //     await AsyncStorage.setItem('has_seen_onboarding', 'true');
+  //     router.replace('/(auth)/login');
+  //   }
+  // };
+
+  const handleNext = async () => {
     if (currentSlideIndex < onboardingSlides.length - 1) {
       setCurrentSlideIndex(currentSlideIndex + 1);
     } else {
+      // Mark onboarding as complete
+      await AsyncStorage.setItem('has_seen_onboarding', 'true');
+  
+      // Explicitly clear authentication state
+      await AsyncStorage.removeItem('access_token');
+      await AsyncStorage.removeItem('pin_setup_complete');
+      await AsyncStorage.removeItem('app_pin');
+  
+      // Redirect to login
       router.replace('/(auth)/login');
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    // Mark onboarding as complete
+    await AsyncStorage.setItem('has_seen_onboarding', 'true');
     router.replace('/(auth)/login');
   };
 

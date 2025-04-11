@@ -46,43 +46,8 @@ export default function Home() {
   const [balance] = useState(new Animated.Value(0));
   const [displayBalance, setDisplayBalance] = useState('23,000');
   const router = useRouter();
-  const { forcePinVerification, verifyPin } = useAppPin();
-  //   console.log('Home screen mounted');
-    
-  //   Animated.timing(balance, {
-  //     toValue: 12345.67,
-  //     duration: 1000,
-  //     useNativeDriver: false,
-  //   }).start();
-
-  //   balance.addListener(({ value }) => {
-  //     setDisplayBalance(value.toLocaleString('en-US', {
-  //       minimumFractionDigits: 2,
-  //       maximumFractionDigits: 2
-  //     }));
-  //   });
-
-  //   // Check if PIN is set
-  //   checkPinStatus();
-
-  //   return () => {
-  //     console.log('Home screen unmounted');
-  //     balance.removeAllListeners();
-  //   };
-  // }, []);
-
-  // const checkPinStatus = async () => {
-  //   try {
-  //     const pin = await AsyncStorage.getItem('@app_pin');
-  //     console.log('PIN Status:', pin ? 'PIN is set' : 'PIN is not set');
-  //     if (pin) {
-  //       console.log('PIN exists in storage');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error checking PIN status:', error);
-  //   }
-  // };
-
+  const { forcePinVerification, verifyPin } = useAppPin()
+  
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     // Simulate refresh
