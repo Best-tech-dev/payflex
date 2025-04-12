@@ -7,14 +7,14 @@ import { OTPInput } from '@/components/OTPInput';
 import { Button } from '@/components/Button';
 import { colors } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '@/contexts/AuthContext';
+// import { useAuth } from '@/contexts/AuthContext';
 import { useAppPin } from '@/contexts/AppPinContext';
 
 export default function PinVerifyScreen() {
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { isAuthenticated } = useAuth();
+  // const { isAuthenticated } = useAuth();
   const { verifyPin } = useAppPin();
 
   // Log when the component mounts

@@ -2,10 +2,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { router, useSegments, useRootNavigationState } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppPin } from './AppPinContext';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { api } from '@/services/api';
 
-// const API_URL = 'http://localhost:1000/api/v1';
-const API_URL = 'https://nestjs-payflex.onrender.com/api/v1';
+const API_URL = 'http://localhost:1000/api/v1';
+// const API_URL = 'https://nestjs-payflex.onrender.com/api/v1';
 
 interface User {
   id: string;
@@ -18,7 +20,8 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<boolean>; // Add this function
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -30,28 +33,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const { isPinSet, isPinVerified } = useAppPin();
+  const [currentRoutePath, setCurrentRoutePath] = useState<string | null>(null);
 
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'active') {
-        console.log('App has resumed');
-        // Redirect to the PIN verification screen regardless of the previous state
-        router.replace('/(auth)/pin-verify');
+    // Track the current route
+    useEffect(() => {
+      if (!navigationState?.key) return;
+      
+      const currentSegments = segments;
+      if (currentSegments.length > 0) {
+        setCurrentRoutePath('/' + currentSegments.join('/'));
+      }
+    }, [segments, navigationState?.key]);
+
+    useEffect(() => {
+      interface AppStateChangeHandler {
+        (nextAppState: string): void;
+      }
+
+      const handleAppStateChange: AppStateChangeHandler = (nextAppState) => {
+        if (
+          (Platform.OS === 'ios' && nextAppState === 'active') ||
+          (Platform.OS === 'android' && 
+           (nextAppState === 'active' || AppState.currentState?.match(/inactive|background/) && nextAppState === 'active'))
+        ) {
+          console.log('App has resumed, current path:', currentRoutePath);
+          handleRoutingOnResume();
+        }
+      };
+  
+      const subscription = AppState.addEventListener('change', handleAppStateChange);
+      return () => subscription.remove();
+    }, [isAuthenticated, isPinSet, isPinVerified, currentRoutePath]);
+
+    const handleRoutingOnResume = () => {
+      // Determine where the app should go
+      let targetRoute = '/(app)/home';
+      
+      if (!isAuthenticated) {
+        targetRoute = '/(auth)/login';
+      } else if (!isPinSet) {
+        targetRoute = '/(auth)/pin-setup';
+      } else if (!isPinVerified) {
+        targetRoute = '/(auth)/pin-verify';
+      }
+      
+      // Don't navigate if we're already on the correct screen
+      // We're comparing route paths not including dynamic segments
+      const currentPathBase = currentRoutePath?.split('?')[0] || '';
+      const targetPathBase = targetRoute.split('?')[0];
+      
+      // Check if current route starts with the target route (to handle nested routes)
+      // Or if they're the same route
+      if (!currentPathBase.startsWith(targetPathBase) && currentPathBase !== targetPathBase) {
+        console.log(`Navigating from ${currentPathBase} to ${targetRoute}`);
+        router.replace(targetRoute);
+      } else {
+        console.log(`Already on correct route (${currentPathBase}), not navigating`);
       }
     };
-  
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-  
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 
   // Check for existing token on startup
   useEffect(() => {
     const checkToken = async () => {
       try {
-        const token = await AsyncStorage.getItem('access_token');
+        const token = await SecureStore.getItemAsync('access_token');
         if (token) {
           setIsAuthenticated(true);
           // Optionally fetch user data here
@@ -135,30 +180,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     navigateToScreen();
   }, [isAuthenticated, segments, navigationState?.key, isLoading, isPinSet, isPinVerified, hasInitialNavigation]);
 
+  // Check authentication status
+  const checkAuth = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('access_token');
+      const isAuth = !!token;
+      setIsAuthenticated(isAuth);
+      return isAuth;
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      setIsAuthenticated(false);
+      return false;
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/signin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      const res = await api.auth.login(email, password);
+      const data = await res.json();
+  
+      if (!res.ok || !data.success) {
         throw new Error(data.message || 'Login failed');
       }
-
-      // Store token and user data
-      await AsyncStorage.setItem('access_token', data.data.access_token);
+  
+      await SecureStore.setItemAsync('access_token', data.data.access_token);
       setUser(data.data.user);
       setIsAuthenticated(true);
-
-      console.log("Is pin set: ", isPinSet);
-      console.log("Is pin verified: ", isPinVerified);
-      if(!isPinSet) {
+  
+      if (!isPinSet) {
         router.replace('/(auth)/pin-setup');
       } else {
         router.replace('/(auth)/pin-verify');
@@ -168,52 +217,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
-
+  
   const register = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          first_name: firstName, 
-          last_name: lastName 
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      const res = await api.auth.register(email, password, firstName, lastName);
+      const data = await res.json();
+  
+      if (!res.ok || !data.success) {
         throw new Error(data.message || 'Registration failed');
       }
-
-      // Don't set authenticated state, redirect to login
-      router.replace('/(auth)/login');
+  
+      await SecureStore.setItemAsync('access_token', data.data.access_token);
+      setUser(data.data.user);
+      setIsAuthenticated(true);
+  
+      if (!isPinSet) {
+        router.replace('/(auth)/pin-setup');
+      } else {
+        router.replace('/(auth)/pin-verify');
+      }
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
     }
   };
-
-  //////////////////////////////////////      From the home Screen
+  
   const logout = async () => {
     console.log("Logging out...");
-    await AsyncStorage.removeItem('access_token');
+    
+    console.log("Async Data Available before clear: ", await AsyncStorage.getAllKeys());
+    
+    // Remove the exact keys as they appear in storage
+    await SecureStore.deleteItemAsync('access_token');
     await AsyncStorage.removeItem('pin_setup_complete');
-    // await AsyncStorage.removeItem('@app_pin');
-    console.log("Async Data Available afterclear: ", await AsyncStorage.getAllKeys());
-
+    await AsyncStorage.removeItem('@app_pin');
+    await AsyncStorage.removeItem('hasLaunched');
+    // await AsyncStorage.removeItem('has_seen_onboarding');
+    
+    console.log("Async Data Available after clear: ", await AsyncStorage.getAllKeys());
+    
     setUser(null);
     setIsAuthenticated(false);
-
+    
     router.replace('/(auth)/login');
-  };
+};
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

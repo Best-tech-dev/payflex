@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -9,6 +9,8 @@ import { colors } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppPin } from '@/contexts/AppPinContext';
 
+import { useAuth } from '@/contexts/AuthContext';
+
 export default function PinSetupScreen() {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -16,6 +18,8 @@ export default function PinSetupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { setupPin } = useAppPin();
+
+  const { isAuthenticated } = useAuth();
 
   const handlePinChange = (value: string) => {
     if (step === 'create') {
@@ -66,6 +70,13 @@ export default function PinSetupScreen() {
   //     router.back();
   //   }
   // };
+
+  // Log when the component mounts
+  useEffect(() => {
+    if(!isAuthenticated) {
+      router.replace('/(auth)/login');
+    }
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>

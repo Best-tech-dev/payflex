@@ -2,30 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, RefreshControl, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppPin } from '@/contexts/AppPinContext';
 import { colors } from '@/constants/theme';
+import { Wallet } from '@/types/user';
+
+
 
 // Import components
 import Navbar from '@/components/home-component/Navbar';
 import WalletCard from '@/components/home-component/WalletCard';
 import QuickActions from '@/components/home-component/QuickActions';
-import TransactionHistory, { Transaction } from '@/components/home-component/TransactionHistory';
+import TransactionHistory from '@/components/home-component/TransactionHistory';
 import AdvertisementCard from '@/components/home-component/Advertisement';
 import FloatingActionButton from '@/components/home-component/FloatingAction';
+import { api } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Define proper type for Material Community Icons
 type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
-// Mock data with proper typing
-const transactions: Transaction[] = [
-  { id: '1', type: 'credit', amount: 5000, description: 'Salary Payment', date: 'Apr 8th, 17:23:58', icon: '💰', status: 'successful' },
-  { id: '2', type: 'debit', amount: 1500, description: 'Netflix Subscription', date: 'Apr 7th, 14:15:30', icon: '🎬', status: 'pending' },
-  { id: '3', type: 'credit', amount: 2000, description: 'Freelance Work', date: 'Apr 6th, 09:45:12', icon: '💼', status: 'failed' },
-];
-
+// Quick actions data
 const quickActions: { id: string; title: string; icon: MaterialIconName; route: string }[] = [
   { id: '1', title: 'Funding', icon: 'wallet', route: '/funding' },
   { id: '2', title: 'Send', icon: 'send', route: '/send' },
@@ -42,18 +39,123 @@ const quickActions: { id: string; title: string; icon: MaterialIconName; route: 
 ];
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
+  const [walletData, setWalletData] = useState<Wallet | null>(null);
+  const [transactions, setTransactions] = useState([]);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [walletError, setWalletError] = useState(null);
+  const [transactionsError, setTransactionsError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [balance] = useState(new Animated.Value(0));
-  const [displayBalance, setDisplayBalance] = useState('23,000');
-  const router = useRouter();
-  const { forcePinVerification, verifyPin } = useAppPin()
+  const [userData, setUserData] = useState<{ name: string; first_name?: string; profile_data?: { first_name?: string } } | null>(null);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState(null);
   
-  const onRefresh = React.useCallback(() => {
+  const router = useRouter();
+  const { forcePinVerification } = useAppPin();
+
+  // //////////////////////////////////////////////////// Fetch wallet
+  const fetchWallet = async () => {
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login');
+    }
+
+    setWalletLoading(true);
+    setWalletError(null);
+    try {
+      // Add artificial delay in development
+      if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const walletResponse = await api.wallet.fetchWallet();
+      setWalletData(walletResponse.wallet);
+    } catch (error: any) {
+      setWalletError(error.message || 'Failed to load wallet');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  // //////////////////////////////////////////////////// Fetch transactions
+  const fetchTransactions = async () => {
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login');
+      return;
+    }
+  
+    setTransactionsLoading(true);
+    setTransactionsError(null);
+  
+    try {
+
+      // Add artificial delay in development
+      if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // This already returns the parsed data.data
+      const data = await api.wallet.fetchTransactions();
+      
+      // No need to call .json() or check res.ok since 
+      // your fetchTransactions already handles that
+      
+      // Extracting transactions array from the response
+      const transactions = data.transactions.map((tx: any) => ({
+        id: tx.id,
+        type: tx.type,
+        amount: parseFloat(tx.amount.replace(/,/g, '')),
+        description: tx.description,
+        date: tx.date,
+        icon: tx.icon || '💸',
+        status: tx.status,
+      }));
+
+      // console.log("Transactions: ", transactions);
+  
+      setTransactions(transactions);
+    } catch (error: any) {
+      setTransactionsError(error.message || 'Failed to load transactions');
+    } finally {
+      setTransactionsLoading(false);
+    }
+}
+  
+  // //////////////////////////////////////////////////// Fetch user profile
+  const fetchUserProfile = async () => {
+    setUserLoading(true);
+    setUserError(null);
+    try {
+
+      // Add artificial delay in development
+      if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
+
+
+      const userProfile = await api.user.getProfile();
+      const userProfileData = await userProfile.json();
+
+      if (!userProfileData.success) {
+        throw new Error(userProfileData.message || 'Failed to load user profile');
+      }
+
+      setUserData(userProfileData.data.profile_data);
+    } catch (error: any) {
+      setUserError(error.message || 'Failed to load user profile');
+    } finally {
+      setUserLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
+    try {
+      await Promise.all([fetchWallet(), fetchUserProfile(), fetchTransactions(), ]); //fetchTransactions(), 
+    } finally {
       setRefreshing(false);
-    }, 2000);
+    }
+  };
+
+  useEffect(() => {
+    
+    fetchWallet();
+    fetchTransactions();
+    fetchUserProfile();
   }, []);
 
   const handleSeeAllTransactions = () => {
@@ -77,12 +179,23 @@ export default function Home() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Navbar userName="Mayowa" />
-        <WalletCard balance={displayBalance} income="5,000" expenses="1,500" />
+        <Navbar userName={userData?.first_name || '...'} />
+
+        <WalletCard 
+          balance={walletData?.current_balance?.toString() || '0'} 
+          income={walletData?.all_time_fuunding?.toString() || '0'} 
+          expenses={walletData?.all_time_withdrawn?.toString() || '0'} 
+          loading={walletLoading}
+          error={walletError}
+          onPress={fetchWallet}
+        />
         <QuickActions actions={quickActions} />
         <TransactionHistory 
           transactions={transactions} 
-          onSeeAllPress={handleSeeAllTransactions} 
+          onSeeAllPress={handleSeeAllTransactions}
+          loading={transactionsLoading}
+          error={transactionsError}
+          onRetry={fetchTransactions}
         />
         <AdvertisementCard 
           title="Upgrade to Premium"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Modal, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,9 +7,10 @@ import { router } from 'expo-router';
 
 interface NavbarProps {
   userName: string;
+  loading?: boolean; // Add loading prop
 }
 
-const Navbar: React.FC<NavbarProps> = ({ userName }) => {
+const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
   const { logout } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -18,10 +19,8 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
   };
 
   const handleLogoutConfirm = async () => {
-
     logout();
     setShowLogoutModal(false);
-    
     router.replace('/(auth)/login');
   };
 
@@ -36,31 +35,24 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
         <View className='flex-row items-center gap-2'>
           <Image
             source={require('@/assets/images/bernard-2.png')}
-            style={{ width: 32, height: 32 }}
+            style={{ width: 45, height: 45, borderRadius: 999, marginRight: 8 }}
+            resizeMode="cover"
           />
           <View>
             <Text style={{ color: '#6B7280', fontSize: 14 }}>Welcome back</Text>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>{userName}</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#6366F1" />
+                <Text style={styles.loadingText}>...</Text>
+              </View>
+            ) : (
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>{userName}</Text>
+            )}
           </View>
         </View>
 
         {/* Right: Icons container */}
         <View style={{ flexDirection: 'row' }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: 'white',
-              padding: 8,
-              borderRadius: 999,
-              marginRight: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.1,
-              shadowRadius: 2,
-            }}
-          >
-            <MaterialCommunityIcons name="menu" size={24} color="#111827" />
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={{
               backgroundColor: 'white',
@@ -103,6 +95,10 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Logout</Text>
+            
+            <MaterialCommunityIcons name="logout" size={48} color="#EF4444" style={{ marginBottom: 16 }} />
+            
+            {/* Modal message */}
             <Text style={styles.modalText}>Are you sure you want to logout?</Text>
             
             <View style={styles.buttonContainer}>
@@ -128,6 +124,16 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginLeft: 4,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
