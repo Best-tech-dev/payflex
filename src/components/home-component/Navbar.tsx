@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, Modal, StyleSheet, ActivityIndicat
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 
 interface NavbarProps {
@@ -21,6 +22,9 @@ const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
   const handleLogoutConfirm = async () => {
     logout();
     setShowLogoutModal(false);
+    await SecureStore.deleteItemAsync('access_token');
+    await AsyncStorage.removeItem('isPinSet');
+    await AsyncStorage.removeItem('isPinVerified');
     router.replace('/(auth)/login');
   };
 
@@ -80,7 +84,8 @@ const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
             }}
             onPress={handleLogoutPress}
           >
-            <MaterialCommunityIcons name="logout" size={24} color="#EF4444" />
+            {/* <MaterialCommunityIcons name="logout" size={24} color="#EF4444" /> */}
+            <MaterialCommunityIcons name="menu" size={24} color="#111827" />
           </TouchableOpacity>
         </View>
       </View>

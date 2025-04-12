@@ -68,14 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleRoutingOnResume = () => {
       // Determine where the app should go
       let targetRoute = '/(app)/home';
+
+      console.log("Auth state: ", { isAuthenticated, isPinSet, isPinVerified });
       
       if (!isAuthenticated) {
         targetRoute = '/(auth)/login';
-      } else if (!isPinSet) {
-        targetRoute = '/(auth)/pin-setup';
-      } else if (!isPinVerified) {
+      } else if (isAuthenticated && isPinSet && !isPinVerified) {
         targetRoute = '/(auth)/pin-verify';
-      }
+      }else if (isAuthenticated && !isPinSet) {
+        targetRoute = '/(auth)/pin-setup';
+      } 
       
       // Don't navigate if we're already on the correct screen
       // We're comparing route paths not including dynamic segments

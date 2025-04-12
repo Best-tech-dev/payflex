@@ -12,20 +12,32 @@ const TOKEN_KEY = 'access_token';
 // Create a custom fetch function with authentication
 export async function apiFetch(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  requiresAuth: boolean = true
 ): Promise<Response> {
   try {
-    // Get the token from secure storage
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
-    
     // Prepare headers with platform-specific settings
-    const headers = {
+    const headers = new Headers({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Platform': Platform.OS,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    };
+      'Platform': Platform.OS
+    });
+
+    // Add any custom headers from options
+    if (options.headers) {
+      const customHeaders = new Headers(options.headers);
+      customHeaders.forEach((value: string, key: string) => {
+        headers.set(key, value);
+      });
+    }
+
+    // Only add authorization header if endpoint requires auth
+    if (requiresAuth) {
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
     
     // Create a custom timeout solution
     const controller = new AbortController();
@@ -48,19 +60,33 @@ export async function apiFetch(
       clearTimeout(timeoutId);
       
       // Handle token expiration (401 Unauthorized)
-      if (response.status === 401) {
-        console.log("Toekn expired, logging out..."); 
+      if (requiresAuth && response.status === 401) {
+        console.log("Token expired, logging out..."); 
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         await logout();
-        // router.replace('/(auth)/login');
+        router.replace('/(auth)/login');
         throw new Error('Authentication expired. Please log in again.');
       }
       
       // If response is not ok, throw an error with the response text
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+        let errorMessage = `API request failed with status ${response.status}`;
+      
+        try {
+          const errorData = await response.json();
+          console.error('API Error Response:', errorData);
+      
+          // Customize what gets shown
+          if (errorData?.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (jsonError) {
+          // Fall back if it's not JSON
+          const text = await response.text();
+          errorMessage = text;
+        }
+      
+        throw new Error(errorMessage);
       }
       
       return response;
@@ -94,7 +120,7 @@ export const api = {
       apiFetch('/auth/signin', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
-      }),
+      }, false),
 
     register: (email: string, password: string, firstName: string, lastName: string) =>
       apiFetch('/auth/signup', {
@@ -105,7 +131,7 @@ export const api = {
           first_name: firstName,
           last_name: lastName,
         }),
-      }),
+      }, false),
 
     logout: () =>
       apiFetch('/auth/logout', {
@@ -119,16 +145,16 @@ export const api = {
 
       // 🔥 New forgot-password-related APIs
     sendOtpToEmail: (email: string) =>
-      apiFetch('/auth/send-otp', {
+      apiFetch('/auth/request-password-reset-email', {
         method: 'POST',
         body: JSON.stringify({ email }),
-      }),
+      }, false),
 
-    verifyOtp: (email: string, otp: string) =>
-      apiFetch('/auth/verify-otp', {
+    updatePassword: (email: string, otp: string, newPassword: string) =>
+      apiFetch('/auth/reset-password', {
         method: 'POST',
-        body: JSON.stringify({ email, otp }),
-      }),
+        body: JSON.stringify({ email, otp, new_password: newPassword }),
+      }, false),
   },
   
   // User endpoints
