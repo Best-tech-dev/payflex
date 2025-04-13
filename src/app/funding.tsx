@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,8 @@ import { styled } from 'nativewind';
 import { colors } from '@/constants/theme';
 import { Loader } from '@/components/Loader';
 import { SuccessModal } from '@/components/SuccessModal';
+import { api } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -28,18 +30,83 @@ export default function Funding() {
 
   const handleBack = () => router.back();
 
+  // const handleFundWallet = async () => {
+  //   if (!amount) return;
+    
+  //   setShowAmountModal(false);
+  //   setLoading(true);
+
+  //   // Simulate API call
+  //   setTimeout(() => {
+  //     setLoading(false);
+  //     setShowSuccess(true);
+  //     setAmount('');
+  //   }, 2000);
+  // };
+
   const handleFundWallet = async () => {
     if (!amount) return;
     
     setShowAmountModal(false);
     setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
+  
+    try {
+      // Input validation
+      const amountValue = parseFloat(amount);
+      if (isNaN(amountValue) || amountValue <= 0) {
+        throw new Error('Please enter a valid amount');
+      }
+  
+      // Call API with error handling
+      const response = await api.wallet.fundWallet(amountValue, "https://yourapp.com/payment-complete").catch(error => {
+        console.error('API Error:', error);
+        throw new Error(error.message || 'Network error. Please check your connection and try again.');
+      });
+      
+      // Validate response
+      if (!response || !response.authorization_url) {
+        throw new Error('Invalid payment response from server');
+      }
+      
+      // Store payment reference for later verification
+      await AsyncStorage.setItem('pendingPaymentRef', response.reference);
+      
+      // Navigate to payment webview
+      router.push({
+        pathname: '/payment-webview',
+        params: { 
+          url: response.authorization_url,
+          reference: response.reference,
+          amount: response.amount
+        }
+      });
+    } catch (error: unknown) {
+      // Enhanced error handling with specific error messages
+      const errorMessage = error instanceof Error ? error.message : 'Unable to process payment at this time';
+      
+      console.error('Payment initialization failed:', error);
+      
+      Alert.alert(
+        'Payment Failed', 
+        errorMessage,
+        [
+          { 
+            text: 'Try Again', 
+            onPress: () => setShowAmountModal(true), 
+            style: 'default' 
+          },
+          { 
+            text: 'Cancel', 
+            style: 'cancel' 
+          }
+        ]
+      );
+      
+      // Log error for analytics
+      // logErrorToAnalytics('payment_initialization_failed', { error: errorMessage });
+    } finally {
       setLoading(false);
-      setShowSuccess(true);
-      setAmount('');
-    }, 2000);
+    }
   };
 
   const handleGoHome = () => {

@@ -182,10 +182,13 @@ export const api = {
       return data.data;
     },
 
-    fundWallet: async (amount: number) => {
+    fundWallet: async (amount: number, callback_url: string) => {
       const response = await apiFetch('/banking/initialise-paystack-funding', {
         method: 'POST',
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ 
+          amount, 
+          callback_url 
+        }),
       });
       const data = await response.json();
       // console.log("Res: ", response);
@@ -195,6 +198,21 @@ export const api = {
         throw new Error(data.message || 'Failed to fund wallet'); 
       }
 
+      return data.data;
+    },
+
+    verifyPaystackPayment: async (reference: string) => {
+      const response = await apiFetch('/banking/verify-paystack-funding', {
+        method: 'POST',
+        body: JSON.stringify({ reference }),
+      });
+      const data = await response.json();
+      // console.log("Res: ", response);
+      // console.log("retrieved transactions: ", data.data.transactions);
+      if(!data.success) {
+        console.log("Error verifying payment:", data.message);
+        throw new Error(data.message || 'Failed to verify payment'); 
+      }
       return data.data;
     },
 

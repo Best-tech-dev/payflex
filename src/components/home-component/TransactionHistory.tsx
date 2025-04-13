@@ -10,7 +10,9 @@ export interface Transaction {
   description: string;
   date: string;
   icon: string;
-  status: 'successful' | 'pending' | 'failed';
+  status: 'success' | 'pending' | 'failed';
+  credit_debit: 'credit' | 'debit';
+  transaction_type: 'deposit' | 'transfer' | 'airtime' | 'data'
 }
 
 interface TransactionHistoryProps {
@@ -155,23 +157,28 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                 <Text style={{ color: '#6B7280', fontSize: 12 }}>{transaction.date}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text
-                  style={{
-                    fontWeight: '600',
-                    color:
-                      transaction.type === 'credit' ? '#10B981' : '#EF4444',
-                    fontSize: 14,
-                    marginBottom: 4,
-                  }}
-                >
-                  {transaction.type === 'credit' ? '+' : '-'}
-                  #{transaction.amount.toLocaleString()}
-                </Text>
+              <Text
+                style={{
+                  fontWeight: '600',
+                  color: transaction.credit_debit === 'credit' ? 'green' : 'red',
+                  fontSize: 14,
+                  marginBottom: 4,
+                }}
+              >
+                {
+                transaction.credit_debit === 'credit' 
+                ? 
+                `+₦${transaction.amount.toLocaleString()}` 
+                : 
+                `-₦${transaction.amount.toLocaleString()}
+                `
+              }
+              </Text>
                 <Text
                   style={{
                     fontSize: 12,
                     color:
-                      transaction.status === 'successful'
+                      transaction.status === 'success'
                         ? '#10B981'
                         : transaction.status === 'pending'
                         ? '#F59E0B'
