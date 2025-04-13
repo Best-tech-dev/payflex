@@ -16,6 +16,9 @@ interface TransactionHistoryProps {
   maxItems?: number;
   showHeader?: boolean;
   onViewAll?: () => void;
+  loading?: boolean;
+  error?: any;
+  onRetry?: () => Promise<void>;
 }
 
 export default function TransactionHistory({ 

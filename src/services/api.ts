@@ -182,6 +182,22 @@ export const api = {
       return data.data;
     },
 
+    fundWallet: async (amount: number) => {
+      const response = await apiFetch('/banking/initialise-paystack-funding', {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      });
+      const data = await response.json();
+      // console.log("Res: ", response);
+      // console.log("retrieved transactions: ", data.data.transactions);
+      if(!data.success) {
+        console.log("Error funding wallet:", data.message);
+        throw new Error(data.message || 'Failed to fund wallet'); 
+      }
+
+      return data.data;
+    },
+
     fetchTransactions: async () => {
       const response = await apiFetch('/history/fetch-all-history?limit=2');
       const data = await response.json();

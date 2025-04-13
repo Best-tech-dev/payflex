@@ -192,9 +192,9 @@ export default function Home() {
         <QuickActions actions={quickActions} />
         <TransactionHistory 
           transactions={transactions} 
-          onSeeAllPress={handleSeeAllTransactions}
           loading={transactionsLoading}
           error={transactionsError}
+          onSeeAllPress={handleSeeAllTransactions}
           onRetry={fetchTransactions}
         />
         <AdvertisementCard 
