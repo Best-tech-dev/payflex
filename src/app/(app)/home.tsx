@@ -166,9 +166,11 @@ export default function Home() {
         console.log("Verifying paystack payment...");
         const verificationResult = await api.wallet.verifyPaystackPayment(ref);
   
-        console.log("Verification result:", verificationResult);
+        // console.log("Verification result:", verificationResult);
     
         if (verificationResult.success) {
+
+          console.log("Payment verified successfully:");
 
           await AsyncStorage.removeItem('pendingPaymentRef');
 

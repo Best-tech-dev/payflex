@@ -58,7 +58,7 @@ export default function Funding() {
       }
   
       // Call API with error handling
-      const response = await api.wallet.fundWallet(amountValue, "https://yourapp.com/payment-complete").catch(error => {
+      const response = await api.wallet.fundWallet(amountValue, "http://localhost:1000/api/v1").catch(error => {
         console.error('API Error:', error);
         throw new Error(error.message || 'Network error. Please check your connection and try again.');
       });

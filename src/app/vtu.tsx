@@ -1,16 +1,54 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, SafeAreaView, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
 import { Loader } from '@/components/Loader';
 import { router } from 'expo-router';
 
-// Mock data for network providers
+// Network Providers Data
 const NETWORK_PROVIDERS = [
-  { id: '1', name: 'MTN', code: 'MTN' },
-  { id: '2', name: 'Airtel', code: 'AIRTEL' },
-  { id: '3', name: 'Glo', code: 'GLO' },
-  { id: '4', name: '9mobile', code: '9MOBILE' },
+  {
+    id: '1',
+    provider: 'MTN',
+    providerLogoUrl: require('@/assets/images/MTN-icon.jpg'),
+    minAmount: '5',
+    maxAmount: '',
+  },
+  {
+    id: '2',
+    provider: 'Airtel',
+    providerLogoUrl: require('@/assets/images/airtel-icon.jpg'),
+    minAmount: '5',
+    maxAmount: '',
+  },
+  {
+    id: '3',
+    provider: 'Glo',
+    providerLogoUrl: require('@/assets/images/glo-icon.jpg'),
+    minAmount: '5',
+    maxAmount: '',
+  },
+  {
+    id: '4',
+    provider: '9mobile',
+    providerLogoUrl: require('@/assets/images/9mobile-icon.jpg'),
+    minAmount: '5',
+    maxAmount: '',
+  },
+  {
+    id: '5',
+    provider: 'SPECTRANET',
+    providerLogoUrl: require('@/assets/images/spectranet.jpeg'),
+    minAmount: '5',
+    maxAmount: '',
+  },
+  {
+    id: '6',
+    provider: 'SMILE-4G',
+    providerLogoUrl: require('@/assets/images/smile-4g-icon.jpeg'),
+    minAmount: '5',
+    maxAmount: '',
+  },
 ];
 
 // Mock data for data bundles
@@ -23,9 +61,8 @@ const DATA_BUNDLES = [
 
 export default function VTUServices() {
   const [selectedTab, setSelectedTab] = useState<'airtime' | 'data'>('airtime');
-  const [showProviderModal, setShowProviderModal] = useState(false);
   const [showDataBundleModal, setShowDataBundleModal] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<typeof NETWORK_PROVIDERS[0] | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('08146694787');
   const [amount, setAmount] = useState('500');
   const [selectedBundle, setSelectedBundle] = useState<{ id: string; name: string; amount: number; data: string; validity: string } | null>();
@@ -38,92 +75,75 @@ export default function VTUServices() {
     setTimeout(() => {
       setShowLoading(false);
       setShowSuccessModal(true);
-      // Reset form
-      setPhoneNumber('');
-      setAmount('');
-      setSelectedProvider(null);
-      setSelectedBundle(null);
     }, 2000);
   };
 
-  const renderProviderModal = () => (
-    <Modal
-      visible={showProviderModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowProviderModal(false)}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-        <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
-          <View style={{ 
-            backgroundColor: 'white', 
-            borderRadius: 16,
-            padding: 24,
-          }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 24,
-            }}>
-              <TouchableOpacity onPress={() => setShowProviderModal(false)}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
-              </TouchableOpacity>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
-                Select Network
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setShowProviderModal(false)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#EF4444',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <MaterialCommunityIcons name="close" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView>
-              {NETWORK_PROVIDERS.map(provider => (
-                <TouchableOpacity
-                  key={provider.id}
-                  style={{
-                    paddingVertical: 16,
-                    paddingHorizontal: 8,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#E5E7EB',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    setSelectedProvider(provider);
-                    setShowProviderModal(false);
-                  }}
-                >
-                  <View style={{ 
-                    width: 40, 
-                    height: 40, 
-                    borderRadius: 20, 
-                    backgroundColor: '#F3F4F6',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 12,
-                  }}>
-                    <MaterialCommunityIcons name="cellphone" size={24} color={colors.primary.main} />
-                  </View>
-                  <Text style={{ fontSize: 16, color: '#111827' }}>{provider.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+  const renderProviderCards = () => {
+    const providers = selectedTab === 'airtime' ? NETWORK_PROVIDERS.slice(0, 4) : NETWORK_PROVIDERS;
+    
+    return (
+      <View style={{ marginBottom: 24 }}>
+        <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 12 }}>Select Network Provider</Text>
+        <View style={{ 
+          flexDirection: 'row', 
+          flexWrap: 'wrap', 
+          gap: 12,
+          ...(selectedTab === 'data' ? {
+            justifyContent: 'flex-start',
+          } : {
+            justifyContent: 'space-between',
+          })
+        }}>
+          {providers.map((provider) => (
+            <TouchableOpacity
+              key={provider.id}
+              onPress={() => setSelectedProvider(provider)}
+              style={{
+                width: selectedTab === 'data' ? '31%' : '48%',
+                aspectRatio: 1.2,
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: selectedProvider?.id === provider.id ? colors.primary.main : '#E5E7EB',
+                padding: 8,
+                backgroundColor: selectedProvider?.id === provider.id ? `${colors.primary.main}10` : 'white',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View style={{
+                width: '100%',
+                height: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  marginBottom: 6,
+                  overflow: 'hidden',
+                }}>
+                  <Image
+                    source={provider.providerLogoUrl}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                </View>
+                <Text style={{ 
+                  fontSize: 12, 
+                  fontWeight: '500',
+                  color: selectedProvider?.id === provider.id ? colors.primary.main : '#111827',
+                  textAlign: 'center'
+                }}>
+                  {provider.provider}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
-      </SafeAreaView>
-    </Modal>
-  );
+      </View>
+    );
+  };
 
   const renderDataBundleModal = () => (
     <Modal
@@ -260,18 +280,45 @@ export default function VTUServices() {
                 : `Your data bundle purchase of ${selectedBundle?.data} for ${phoneNumber} was successful`}
             </Text>
 
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.primary.main,
-                padding: 16,
-                borderRadius: 12,
-                width: '100%',
-                alignItems: 'center',
-              }}
-              onPress={() => setShowSuccessModal(false)}
-            >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Done</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: 'white',
+                  padding: 16,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: colors.primary.main,
+                }}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  router.push('/home');
+                }}
+              >
+                <Text style={{ color: colors.primary.main, fontSize: 16, fontWeight: '600' }}>Go Home</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.primary.main,
+                  padding: 16,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  // Reset form
+                  setPhoneNumber('');
+                  setAmount('');
+                  setSelectedProvider(null);
+                  setSelectedBundle(null);
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Buy Again</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -280,8 +327,43 @@ export default function VTUServices() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>VTU Services</Text>
+      <View style={{ 
+        paddingHorizontal: 24, 
+        paddingTop: 24, 
+        paddingBottom: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <TouchableOpacity 
+          onPress={() => router.push('/home')}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: '#F3F4F6',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+        </TouchableOpacity>
+        
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>VTU Services</Text>
+        
+        <TouchableOpacity 
+          onPress={() => router.push('/vtu-history')}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: '#F3F4F6',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <MaterialCommunityIcons name="history" size={24} color="#111827" />
+        </TouchableOpacity>
       </View>
 
       <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
@@ -296,13 +378,13 @@ export default function VTUServices() {
               flex: 1,
               paddingVertical: 12,
               borderRadius: 8,
-              backgroundColor: selectedTab === 'airtime' ? 'white' : 'transparent',
+              backgroundColor: selectedTab === 'airtime' ? colors.primary.main : 'transparent',
               alignItems: 'center',
             }}
             onPress={() => setSelectedTab('airtime')}
           >
             <Text style={{ 
-              color: selectedTab === 'airtime' ? '#111827' : '#6B7280',
+              color: selectedTab === 'airtime' ? 'white' : '#6B7280',
               fontWeight: '500',
             }}>
               Airtime
@@ -313,13 +395,13 @@ export default function VTUServices() {
               flex: 1,
               paddingVertical: 12,
               borderRadius: 8,
-              backgroundColor: selectedTab === 'data' ? 'white' : 'transparent',
+              backgroundColor: selectedTab === 'data' ? colors.primary.main : 'transparent',
               alignItems: 'center',
             }}
             onPress={() => setSelectedTab('data')}
           >
             <Text style={{ 
-              color: selectedTab === 'data' ? '#111827' : '#6B7280',
+              color: selectedTab === 'data' ? 'white' : '#6B7280',
               fontWeight: '500',
             }}>
               Data
@@ -329,6 +411,8 @@ export default function VTUServices() {
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 24 }}>
+        {renderProviderCards()}
+        
         <View style={{ marginBottom: 24 }}>
           <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 4 }}>Phone Number</Text>
           <TextInput
@@ -386,27 +470,6 @@ export default function VTUServices() {
           </View>
         )}
 
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 4 }}>Network Provider</Text>
-          <TouchableOpacity
-            style={{
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              borderRadius: 8,
-              padding: 12,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-            onPress={() => setShowProviderModal(true)}
-          >
-            <Text style={{ color: selectedProvider ? '#111827' : '#9CA3AF', fontSize: 16 }}>
-              {selectedProvider ? selectedProvider.name : 'Select network provider'}
-            </Text>
-            <MaterialCommunityIcons name="chevron-down" size={24} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-
         <TouchableOpacity
           style={{
             backgroundColor: colors.primary.main,
@@ -422,20 +485,10 @@ export default function VTUServices() {
             {selectedTab === 'airtime' ? 'Buy Airtime' : 'Buy Data'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-        style={{ 
-          padding: 16, 
-          borderRadius: 12, 
-          alignItems: 'center' 
-        }}
-        onPress={() => router.push('/home')}>
-          <Text style={{ color: 'black', fontSize: 16, fontWeight: '300' }}>
-            Home
-          </Text>
-        </TouchableOpacity>
+
       </ScrollView>
 
-      {renderProviderModal()}
+
       {renderDataBundleModal()}
       {renderSuccessModal()}
       <Loader visible={showLoading} message="Processing purchase..." />

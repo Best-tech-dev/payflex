@@ -64,9 +64,11 @@ export default function PaymentWebView() {
       console.log("Verifying paystack payment...");
       const verificationResult = await api.wallet.verifyPaystackPayment(ref);
 
-      console.log("Verification result:", verificationResult);
+      // console.log("Verification result:", verificationResult);
   
       if (verificationResult.success) {
+
+        console.log("Payment verified successfully:");
 
         setNewBalance(verificationResult.data?.balance || 0);
 
@@ -125,7 +127,7 @@ useEffect(() => {
     console.log('Navigated to:', navState.url);
 
   // Check if the URL indicates payment completion
-  if (navState.url.includes('https://my-mobileapp.com/verify-paystack-funding') && !isAlreadyVerified) {
+  if (navState.url.includes('http://localhost:1000/api/v1') && !isAlreadyVerified) {
     console.log('Payment completed. Verifying...');
     setIsAlreadyVerified(true); // Prevent duplicate verification
 
