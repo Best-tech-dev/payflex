@@ -208,8 +208,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await SecureStore.setItemAsync('access_token', data.data.access_token);
       setUser(data.data.user);
       setIsAuthenticated(true);
+
+      console.log("Async Storage Data......: ", await AsyncStorage.getAllKeys());
+
+      const pin = await AsyncStorage.getItem('@app_pin');
   
-      if (!isPinSet) {
+      if (!pin) {
         router.replace('/(auth)/pin-setup');
       } else {
         router.replace('/(auth)/pin-verify');

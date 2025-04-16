@@ -50,7 +50,7 @@ export async function apiFetch(
       signal: controller.signal,
     };
     
-    // console.log(`Making API request to: ${API_URL}${endpoint}`);
+    console.log(`Making API request to: ${API_URL}${endpoint}`);
     
     try {
       // Make the request
@@ -207,11 +207,34 @@ export const api = {
         body: JSON.stringify({ reference }),
       });
       const data = await response.json();
-      // console.log("Res: ", response);
-      // console.log("retrieved transactions: ", data.data.transactions);
       if(!data.success) {
         console.log("Error verifying payment:", data.message);
         throw new Error(data.message || 'Failed to verify payment'); 
+      }
+      return data.data;
+    },
+
+    verifyPayment: async () => {
+      const response = await apiFetch('/banking/verify-payment', {
+        method: 'GET',
+      });
+      const data = await response.json();
+      if(!data.success) {
+        console.log("Error verifying payment:", data.message);
+        throw new Error(data.message || 'Failed to verify payment');
+      }
+      return data;
+    },
+
+    generateOneTimeAccount: async (amount: number) => {
+      const response = await apiFetch('/banking/flw/create-one-time-virtual-account', {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      });
+      const data = await response.json();
+      if(!data.success) {
+        console.log("Error generating one-time account:", data.message);
+        throw new Error(data.message || 'Failed to generate one-time account');
       }
       return data.data;
     },
@@ -229,7 +252,75 @@ export const api = {
       }
       return data.data;
     }
-  }
+  },
   
   // Add other API endpoints as needed
+  vtu: {
+    getDataProvider: async (provider: string) => {
+      const response = await apiFetch('/vtu/setsub/data-prices', {
+        method: 'POST',
+        body: JSON.stringify({ provider }),
+      });
+      const data = await response.json();
+  
+      if(!data.success) {
+        console.log("Error fetching vtu data:", data.message);
+        throw new Error(data.message || 'Failed to fetch vtu data');
+      }
+  
+      return data.data;
+    },
+
+    getDataProviderGiftBills: async (provider: string) => {
+      const response = await apiFetch(`/vtu/gb/available-data-plans/${provider}`, {
+        method: 'GET'
+      });
+      const data = await response.json();
+  
+      if(!data.success) {
+        console.log("Error fetching vtu data:", data.message);
+        throw new Error(data.message || 'Failed to fetch vtu data');
+      }
+  
+      return data.data;
+    },
+
+    purchaseDataGiftBills: async (data: { plan_id: number; network: string; phone_number: string }) => {
+      const response = await apiFetch('/vtu/gb/internet/purchase-data', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      return result;
+    },
+
+    purchaseData: async (data: { plan_id: number; network: string; phone_number: string }) => {
+      const response = await apiFetch('/vtu/setsub/purchase-data', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      return result;
+    },
+
+    purchaseAirtime: async (data: { network: string; amount: number; phone_number: string }) => {
+      const response = await apiFetch('/vtu/setsub/purchase-airtime', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      return result;
+    },
+
+    // gift bill
+    purchaseAirtimeGiftbill: async (data: { network: string; amount: number; phone_number: string }) => {
+      console.log("Data to gift bill buy airtime-(api.ts): ", data);
+      const response = await apiFetch('/vtu/gb/airtime/topup', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      return result;
+    }
+  }
 };

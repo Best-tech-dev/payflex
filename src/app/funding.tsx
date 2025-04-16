@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { Loader } from '@/components/Loader';
 import { SuccessModal } from '@/components/SuccessModal';
 import { api } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GeneratedAccountModal } from '@/components/GeneratedAccountModal';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -25,24 +26,112 @@ export default function Funding() {
   const router = useRouter();
   const [showAmountModal, setShowAmountModal] = useState(false);
   const [amount, setAmount] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Format amount with currency symbol and commas
+  // Helper function to parse amount without currency symbol and commas
+  const parseAmount = (value: string): string => {
+    return value.replace(/[^0-9]/g, '');
+  };
+
+  const formatAmount = (value: string) => {
+    const numericValue = parseAmount(value);
+    if (!numericValue) return '';
+    const formatted = new Intl.NumberFormat('en-NG', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Number(numericValue));
+    return `₦${formatted}`;
+  }
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // New states for the generated account details
+  const [generatedAccount, setGeneratedAccount] = useState<{
+    amount: string;
+    accountNumber: string;
+    bank: string;
+    expiresIn: number; // in seconds
+  } | null>(null);
+
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Handle countdown timer
+  useEffect(() => {
+    if (generatedAccount && generatedAccount.expiresIn > 0) {
+      setCountdown(generatedAccount.expiresIn);
+      const interval = setInterval(() => {
+        setCountdown((prev) => (prev && prev > 0 ? prev - 1 : 0));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [generatedAccount]);
+
   const handleBack = () => router.back();
 
-  // const handleFundWallet = async () => {
-  //   if (!amount) return;
-    
-  //   setShowAmountModal(false);
-  //   setLoading(true);
+  // API call to generate one-time account
+  // In Funding.tsx, find the handleGenerateAccount function and replace it with:
+const handleGenerateAccount = async () => {
+  const numericAmount = parseAmount(amount);
+  const parsedAmount = parseFloat(numericAmount);
+  if (!numericAmount || isNaN(parsedAmount)) {
+    Alert.alert('Invalid Amount', 'Please enter a valid amount');
+    return;
+  }
+  setLoading(true);
+  try {
+    const response = await api.wallet.generateOneTimeAccount(parsedAmount);
+    if (response) {
+      setIsGenerating(true);
+      
+      // New code here to handle the amount correctly
+      const apiAmount = response.amount ? parseFloat(response.amount) : parsedAmount;
+      
+      setGeneratedAccount({
+        amount: apiAmount.toString(), // Store the parsed amount as string
+        accountNumber: response.account_number, // Use account_number from API response
+        bank: response.bank_name, // Use bank_name from API response
+        expiresIn: 1800, // 30 minutes in seconds
+      });
+      setShowAccountModal(true);
+      // Reset the amount field after successful generation
+      setAmount('');
+    }
+  } catch (error) {
+    console.error('Error generating account:', error);
+    Alert.alert('Error', 'Failed to generate account');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  //   // Simulate API call
-  //   setTimeout(() => {
-  //     setLoading(false);
-  //     setShowSuccess(true);
-  //     setAmount('');
-  //   }, 2000);
-  // };
+  // API call to verify payment
+  const handleVerifyPayment = async () => {
+    setLoading(true);
+    try {
+      const response = await api.wallet.verifyPayment();
+      if (response.success) {
+        setShowSuccess(true);
+        setGeneratedAccount(null); // Clear the generated account details
+      } else {
+        Alert.alert('Payment Verification Failed', response.message || 'Please try again.');
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      Alert.alert('Error', 'Failed to verify payment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format countdown timer
+  const formatCountdown = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
 
   const handleFundWallet = async () => {
     if (!amount) return;
@@ -173,7 +262,7 @@ export default function Funding() {
         </StyledView>
 
         {/* Funding Options */}
-        <StyledView className="flex-row px-4">
+        <StyledView className="flex-row px-4 mb-4">
           <FundingOption
             title="Card/Bank"
             icon="credit-card-outline"
@@ -185,6 +274,51 @@ export default function Funding() {
             disabled
           />
         </StyledView>
+
+        {/* Generate Account Option */}
+        <StyledView className="px-4 mb-4 mt-10">
+          <StyledText className="text-gray-600 mb-2">
+            You can generate a one-time account number to fund your wallet with a bank transfer
+          </StyledText>
+
+          {/* Input Box for Amount */}
+          <StyledTextInput
+            className="bg-gray-50 p-4 rounded-xl text-lg mb-4"
+            placeholder="Enter amount (min ₦50)"
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={(text) => {
+              const numericValue = text.replace(/[^0-9]/g, '');
+              const formatted = formatAmount(numericValue);
+              setAmount(formatted);
+            }}
+            editable={!isGenerating}
+          />
+
+          {/* Generate Button */}
+          <StyledTouchableOpacity
+            className={`py-4 rounded-xl ${parseInt(amount.replace(/[^0-9]/g, '')) > 50 ? 'bg-[#0066FF]' : 'bg-blue-300'}`}
+            onPress={handleGenerateAccount}
+            disabled={parseInt(amount.replace(/[^0-9]/g, '')) <= 50 || isGenerating}
+          >
+            <StyledText className="text-white text-center font-semibold">Generate</StyledText>
+          </StyledTouchableOpacity>
+        </StyledView>
+
+        {/* Generated Account Modal */}
+        <GeneratedAccountModal
+          visible={showAccountModal}
+          amount={generatedAccount?.amount || ''}
+          accountNumber={generatedAccount?.accountNumber || ''}
+          bank={generatedAccount?.bank || ''}
+          countdown={countdown}
+          onClose={() => {
+            setShowAccountModal(false);
+            setGeneratedAccount(null);
+            setIsGenerating(false);
+          }}
+          onConfirm={handleVerifyPayment}
+        />
 
         {/* Amount Input Modal */}
         <Modal
@@ -229,11 +363,11 @@ export default function Funding() {
         {/* Success Modal */}
         <SuccessModal
           visible={showSuccess}
-          title="Funding Successful"
-          message="Your account has been successfully funded"
+          title="Payment Verified"
+          message="Your payment has been successfully verified and your wallet has been funded."
           onClose={() => setShowSuccess(false)}
           buttonText="Home"
-          onButtonPress={handleGoHome}
+          onButtonPress={() => router.replace('/(app)/home')}
         />
       </StyledSafeAreaView>
     </>

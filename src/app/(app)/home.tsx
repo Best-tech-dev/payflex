@@ -74,7 +74,7 @@ export default function Home() {
     setWalletError(null);
     try {
       // Add artificial delay in development
-      if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
+      // if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
 
       const walletResponse = await api.wallet.fetchWallet();
       setWalletData(walletResponse.wallet);
@@ -97,13 +97,10 @@ export default function Home() {
   
     try {
       // Add artificial delay in development
-      if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
+      // if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
 
       // This already returns the parsed data.data
       const data = await api.wallet.fetchTransactions();
-      
-      // No need to call .json() or check res.ok since 
-      // your fetchTransactions already handles that
       
       // Extracting transactions array from the response
       const transactions = data.transactions.map((tx: any) => ({
@@ -134,7 +131,7 @@ export default function Home() {
     setUserError(null);
     try {
       // Add artificial delay in development
-      if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
+      // if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
 
       const userProfile = await api.user.getProfile();
       const userProfileData = await userProfile.json();

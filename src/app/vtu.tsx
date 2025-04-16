@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, SafeAreaView, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, SafeAreaView, Image, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
 import { Loader } from '@/components/Loader';
 import { router } from 'expo-router';
+import { api, apiFetch } from '@/services/api';
 
 // Network Providers Data
 const NETWORK_PROVIDERS = [
@@ -51,31 +52,226 @@ const NETWORK_PROVIDERS = [
   },
 ];
 
-// Mock data for data bundles
-const DATA_BUNDLES = [
-  { id: '1', name: 'Daily', amount: 200, data: '1GB', validity: '24 hours' },
-  { id: '2', name: 'Weekly', amount: 1000, data: '5GB', validity: '7 days' },
-  { id: '3', name: 'Monthly', amount: 3000, data: '15GB', validity: '30 days' },
-  { id: '4', name: 'Monthly Plus', amount: 5000, data: '30GB', validity: '30 days' },
-];
-
 export default function VTUServices() {
   const [selectedTab, setSelectedTab] = useState<'airtime' | 'data'>('airtime');
   const [showDataBundleModal, setShowDataBundleModal] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<typeof NETWORK_PROVIDERS[0] | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('08146694787');
+  const [dataBundle, setDataBundle] = useState<{ id: string; name: string; amount: number; dataType: string }[] | null>(null);
   const [amount, setAmount] = useState('500');
   const [selectedBundle, setSelectedBundle] = useState<{ id: string; name: string; amount: number; data: string; validity: string } | null>();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
+  const [airtimeSelectedProvider, setAirtimeSelectedProvider] = useState<string | null>(null);
+  const [airtimePhoneNumber, setAirtimePhoneNumber] = useState<string>('');
+  const [airtimeAmount, setAirtimeAmount] = useState<string>('');
+
+  // console.log("Selected provider: ", selectedProvider?.provider);
+
+  const handleDataSelectedProviderSetsub = async (provider: typeof NETWORK_PROVIDERS[0]) => {
+    if (!provider) {
+      return Alert.alert('Error', 'Please select a network provider');
+    }
+
+    const providerName = provider.provider.toUpperCase(); 
+    console.log("Selected provider: ", provider);
+
+    setShowLoading(true);
+
+    try {
+      const dataBundles = await api.vtu.getDataProvider(providerName || '').catch(error => {
+        console.error('API Error:', error);
+        throw new Error(error.message || 'Network error. Please check your connection and try again.');
+      });
+
+      setDataBundle(dataBundles);
+
+      console.log("Data bundles: ", dataBundles);
+
+      if (!dataBundles) {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Error fetching data bundles:', error);
+      Alert.alert('Error', 'Failed to fetch data bundles');
+    } finally {
+      setShowLoading(false);
+    }
+  };
+
+  const handleDataSelectedProviderGiftBills = async (provider: typeof NETWORK_PROVIDERS[0]) => {
+    if (!provider) {
+      return Alert.alert('Error', 'Please select a network provider');
+    }
+
+    const providerName = provider.provider.toUpperCase(); 
+    console.log("Selected provider for Data on Gift bill: ", provider);
+
+    setShowLoading(true);
+
+    try {
+      const dataBundles = await api.vtu.getDataProviderGiftBills(providerName).catch(error => {
+        console.log("Data Bundles: ", dataBundles);
+        console.error('API Error:', error);
+        throw new Error(error.message || 'Network error. Please check your connection and try again.');
+      });
+
+      setDataBundle(dataBundles);
+
+      console.log(`Data plans for ${provider.provider} successfully fetched`);
+
+      if (!dataBundles) {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Error fetching data bundles:', error);
+      Alert.alert('Error', 'Failed to fetch data bundles');
+    } finally {
+      setShowLoading(false);
+    }
+  };
+
+  // Update handleAirtimeSelectedProvider
+const handleAirtimeSelectedProvider = async (provider: typeof NETWORK_PROVIDERS[0]) => {
+  if (!provider) {
+    return Alert.alert('Error', 'Please select a network provider');
+  }
+
+  const providerName = provider.provider.toLowerCase(); // Convert provider to lowercase
+  setAirtimeSelectedProvider(providerName); // Set the provider in lowercase
+  console.log('Airtime Selected Provider:', providerName);
+};
+
+  // const handleDataPurchase = async () => {
+    
+  //   if (!selectedBundle || !selectedProvider || !phoneNumber) {
+  //     return Alert.alert('Error', 'Please fill in all required fields');
+  //   }
+
+  //   const network = selectedProvider.provider.toLowerCase();
+  //   const data = {
+  //     plan_id: Number(selectedBundle.id),
+  //     network,
+  //     phone_number: phoneNumber,
+  //     amount: selectedBundle.amount,
+  //   };
+  //   console.log("Data: ", data);
+
+  //   setShowLoading(true);
+  //   try {
+  //     const response = await api.vtu.purchaseData(data);
+  //     if (response.success) {
+  //       setShowSuccessModal(true);
+  //     } else {
+  //       Alert.alert('Error', response.message || 'Failed to purchase data');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error purchasing data:', error);
+  //     Alert.alert('Error', 'Failed to purchase data. Please try again.');
+  //   } finally {
+  //     setShowLoading(false);
+  //   }
+  // };
+
+  const handleDataPurchaseGiftBills = async () => {
+    
+    if (!selectedBundle || !selectedProvider || !phoneNumber) {
+      return Alert.alert('Error', 'Please fill in all required fields');
+    }
+
+    const network = selectedProvider.provider.toLowerCase();
+    const data = {
+      plan_id: Number(selectedBundle.id),
+      provider: network,
+      network,
+      phone_number: phoneNumber,
+      amount: selectedBundle.amount,
+    };
+    console.log("Data: ", data);
+
+    setShowLoading(true);
+    try {
+      const response = await api.vtu.purchaseDataGiftBills(data);
+      if (response.success) {
+        setShowSuccessModal(true);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to purchase data');
+      }
+    } catch (error) {
+      console.error('Error purchasing data:', error);
+      Alert.alert('Error', 'Failed to purchase data. Please try again.');
+    } finally {
+      setShowLoading(false);
+    }
+  };
+
+  const handleAirtimePurchaseGiftBill = async () => {
+    if (!selectedProvider || !amount || !phoneNumber) {
+      return Alert.alert('Error', 'Please fill in all required fields');
+    }
+
+    const network = selectedProvider.provider;
+    const data = {
+      network,
+      amount: Number(amount),
+      phone_number: phoneNumber
+    };
+
+    console.log("Data for airtime purchase: ", data);
+
+    setShowLoading(true);
+    try {
+      const response = await api.vtu.purchaseAirtimeGiftbill(data);
+      if (response.success) {
+        setShowSuccessModal(true);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to purchase airtime');
+      }
+    } catch (error) {
+      console.error('Error purchasing airtime:', error);
+      Alert.alert('Error', 'Failed to purchase airtime. Please try again.');
+    } finally {
+      setShowLoading(false);
+    }
+  };
+
+  // const handleAirtimePurchase = async () => {
+  //   if (!selectedProvider || !amount || !phoneNumber) {
+  //     return Alert.alert('Error', 'Please fill in all required fields');
+  //   }
+
+  //   const network = selectedProvider.provider.toLowerCase();
+  //   const data = {
+  //     network,
+  //     amount: Number(amount),
+  //     phone_number: phoneNumber
+  //   };
+
+  //   console.log("Data for airtime purchase: ", data);
+
+  //   setShowLoading(true);
+  //   try {
+  //     const response = await api.vtu.purchaseAirtime(data);
+  //     if (response.success) {
+  //       setShowSuccessModal(true);
+  //     } else {
+  //       Alert.alert('Error', response.message || 'Failed to purchase airtime');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error purchasing airtime:', error);
+  //     Alert.alert('Error', 'Failed to purchase airtime. Please try again.');
+  //   } finally {
+  //     setShowLoading(false);
+  //   }
+  // };
 
   const handlePurchase = () => {
-    setShowLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setShowLoading(false);
-      setShowSuccessModal(true);
-    }, 2000);
+    if (selectedTab === 'data') {
+      handleDataPurchaseGiftBills();
+    } else {
+      // handleAirtimePurchase();
+      handleAirtimePurchaseGiftBill()
+    }
   };
 
   const renderProviderCards = () => {
@@ -97,7 +293,14 @@ export default function VTUServices() {
           {providers.map((provider) => (
             <TouchableOpacity
               key={provider.id}
-              onPress={() => setSelectedProvider(provider)}
+              onPress={async () => {
+                setSelectedProvider(provider); // Update the state
+                if (selectedTab === 'data') {
+                  await handleDataSelectedProviderGiftBills(provider); // Pass the provider directly
+                } else {
+                  handleAirtimeSelectedProvider(provider);
+                }
+              }}
               style={{
                 width: selectedTab === 'data' ? '31%' : '48%',
                 aspectRatio: 1.2,
@@ -168,7 +371,7 @@ export default function VTUServices() {
               <TouchableOpacity onPress={() => setShowDataBundleModal(false)}>
                 <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
               </TouchableOpacity>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#111827' }}>
                 Select Data Bundle
               </Text>
               <TouchableOpacity 
@@ -177,41 +380,70 @@ export default function VTUServices() {
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: '#EF4444',
+                  // backgroundColor: '#EF4444',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <MaterialCommunityIcons name="close" size={20} color="white" />
+                <MaterialCommunityIcons name="close" size={20} color="red" />
               </TouchableOpacity>
             </View>
-
+  
             <ScrollView>
-              {DATA_BUNDLES.map(bundle => (
-                <TouchableOpacity
-                  key={bundle.id}
-                  style={{
-                    paddingVertical: 16,
-                    paddingHorizontal: 8,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#E5E7EB',
-                  }}
-                  onPress={() => {
-                    setSelectedBundle(bundle);
-                    setShowDataBundleModal(false);
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View>
-                      <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>{bundle.name}</Text>
-                      <Text style={{ color: '#6B7280', fontSize: 14 }}>{bundle.data} • {bundle.validity}</Text>
+              {dataBundle && dataBundle.length > 0 ? (
+                dataBundle?.map((bundle) => (
+                  <TouchableOpacity
+                    key={bundle.id}
+                    style={{
+                      paddingVertical: 12,
+                      paddingHorizontal: 10,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: 10,
+                      marginBottom: 8,
+                    }}
+                    onPress={() => {
+                      setSelectedBundle({
+                        id: bundle.id,
+                        name: bundle.name,
+                        amount: bundle.amount,
+                        data: bundle.dataType ,
+                        validity: 'N/A', // Replace 'N/A' with actual validity if available
+                      });
+                      setShowDataBundleModal(false);
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={{ flex: 1, minWidth: 0, marginRight: 8, overflow: 'hidden' }}>
+                        <Text
+                          style={{ fontSize: 14, fontWeight: '500', color: '#111827' }}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {bundle.name}
+                        </Text>
+                        <Text
+                          style={{ color: '#6B7280', fontSize: 12 }}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {bundle.dataType || '[1 month]'}
+                        </Text>
+                      </View>
+                      <View style={{ width: 70, alignItems: 'flex-end' }}>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: colors.primary.main, textAlign: 'right' }}>
+                          ₦{bundle.amount}
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: colors.primary.main }}>
-                      ₦{bundle.amount}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={{ textAlign: 'center', color: '#6B7280', fontSize: 16 }}>
+                  No data bundles available. Please select a provider.
+                </Text>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -277,7 +509,7 @@ export default function VTUServices() {
             <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center', marginBottom: 24 }}>
               {selectedTab === 'airtime' 
                 ? `Your airtime purchase of ₦${amount} for ${phoneNumber} was successful`
-                : `Your data bundle purchase of ${selectedBundle?.data} for ${phoneNumber} was successful`}
+                : `Your data bundle purchase of ${selectedBundle?.amount} for ${phoneNumber} was successful`}
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
@@ -336,7 +568,7 @@ export default function VTUServices() {
         justifyContent: 'space-between'
       }}>
         <TouchableOpacity 
-          onPress={() => router.push('/home')}
+          onPress={() => router.back()}
           style={{
             width: 40,
             height: 40,
@@ -463,7 +695,7 @@ export default function VTUServices() {
               onPress={() => setShowDataBundleModal(true)}
             >
               <Text style={{ color: selectedBundle ? '#111827' : '#9CA3AF', fontSize: 16 }}>
-                {selectedBundle ? `${selectedBundle.name} - ${selectedBundle.data}` : 'Select data bundle'}
+                {selectedBundle ? `${selectedBundle.name} - ${selectedBundle.data || '[1 month]'}` : 'Select data bundle'}
               </Text>
               <MaterialCommunityIcons name="chevron-down" size={24} color="#6B7280" />
             </TouchableOpacity>
@@ -494,4 +726,4 @@ export default function VTUServices() {
       <Loader visible={showLoading} message="Processing purchase..." />
     </SafeAreaView>
   );
-} 
+}

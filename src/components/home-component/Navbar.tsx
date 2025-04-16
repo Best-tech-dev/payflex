@@ -25,6 +25,10 @@ const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
     await SecureStore.deleteItemAsync('access_token');
     await AsyncStorage.removeItem('isPinSet');
     await AsyncStorage.removeItem('isPinVerified');
+    await AsyncStorage.removeItem('@app_pin');
+    await AsyncStorage.removeItem('pin_setup_complete');
+
+    console.log("Stroage Data: ", await AsyncStorage.getAllKeys());
     router.replace('/(auth)/login');
   };
 
@@ -84,8 +88,8 @@ const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
             }}
             onPress={handleLogoutPress}
           >
-            {/* <MaterialCommunityIcons name="logout" size={24} color="#EF4444" /> */}
-            <MaterialCommunityIcons name="menu" size={24} color="#111827" />
+            <MaterialCommunityIcons name="logout" size={24} color="#EF4444" />
+            {/* <MaterialCommunityIcons name="menu" size={24} color="#111827" /> */}
           </TouchableOpacity>
         </View>
       </View>
