@@ -232,16 +232,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Registration failed');
       }
+
+      router.replace('/(auth)/otp-verification');
   
-      await SecureStore.setItemAsync('access_token', data.data.access_token);
-      setUser(data.data.user);
-      setIsAuthenticated(true);
-  
-      if (!isPinSet) {
-        router.replace('/(auth)/pin-setup');
-      } else {
-        router.replace('/(auth)/pin-verify');
-      }
     } catch (error) {
       console.error('Registration error:', error);
       throw error;

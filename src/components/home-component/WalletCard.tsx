@@ -80,7 +80,7 @@ const WalletCard: React.FC<WalletCardProps> = ({
   }
 
   return (
-    <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+    <View style={{ paddingHorizontal: 24, marginBottom: 14 }}>
       <View style={{ 
         backgroundColor: colors.primary.main, 
         borderRadius: 24, 
@@ -90,11 +90,14 @@ const WalletCard: React.FC<WalletCardProps> = ({
         shadowOpacity: 0.1, 
         shadowRadius: 2 
       }}>
-        <Text style={{ color: 'white', fontSize: 14, marginBottom: 4 }}>Overall Wallet Balance: </Text>
+        <View className='flex-row justify-between'>
+          <Text style={{ color: 'white', fontSize: 14, marginBottom: 4 }}>NGN Balance: </Text>
+          <MaterialCommunityIcons name="currency-ngn" size={24} color="green" backgroundColor='white' />
+        </View>
         
         {isValidValue(balance) ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text className='text-xl mb-2 text-white'>#</Text>
+            <MaterialCommunityIcons name="currency-ngn" size={24} color="white"/>
             <Text style={{ fontWeight: '600', color: 'white', marginBottom: 16 }} className='text-3xl'>
               {balance}
             </Text>

@@ -122,7 +122,7 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }, false),
 
-    register: (email: string, password: string, firstName: string, lastName: string) =>
+    register: (firstName: string, lastName: string, email: string, password: string) =>
       apiFetch('/auth/signup', {
         method: 'POST',
         body: JSON.stringify({
@@ -131,6 +131,12 @@ export const api = {
           first_name: firstName,
           last_name: lastName,
         }),
+      }, false),
+
+    verifyOTP: (otp: string, email: string) =>
+      apiFetch('/auth/verify-email-otp', {
+        method: 'POST',
+        body: JSON.stringify({ otp, email }),
       }, false),
 
     logout: () =>

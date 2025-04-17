@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/Button';
 import { Loader } from '@/components/Loader';
 import { OTPInput } from '@/components/OTPInput';
 import { colors } from '@/constants/theme';
+import { api } from '@/services/api';
+import { SuccessModal } from '@/components';
 
 export default function OTPVerification() {
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(60);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -24,16 +27,32 @@ export default function OTPVerification() {
   }, [countdown]);
 
   const handleVerifyOTP = async () => {
-    if (otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+    if (otp.length !== 4) {
+      setError('Please enter a valid 4-digit OTP');
       return;
     }
 
     setIsLoading(true);
     try {
-      // Mock verification delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      router.replace('/(app)/home');
+
+      console.log("Data for otp verification: ", { otp, email });
+
+      const res = await api.auth.verifyOTP(otp, email);
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Verification failed');
+      } 
+
+      // show my success modal for 2 secs 
+      <SuccessModal
+        visible={true}
+        message="OTP verified successfully"
+        onClose={() => router.replace('/(auth)/login')}
+      />
+
+      router.replace('/(auth)/login');
+      
     } catch (error) {
       setError('Invalid OTP. Please try again.');
     } finally {
@@ -48,7 +67,7 @@ export default function OTPVerification() {
     try {
       // Mock resend delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      setCountdown(30);
+      setCountdown(60);
       setError('');
     } catch (error) {
       setError('Failed to resend OTP. Please try again.');
@@ -67,7 +86,7 @@ export default function OTPVerification() {
           <View className="mb-8">
             <Text className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</Text>
             <Text className="text-base text-gray-600">
-              We've sent a 6-digit code to your email
+              We've sent a 4-digit code to your email
             </Text>
           </View>
 
@@ -76,6 +95,7 @@ export default function OTPVerification() {
               value={otp}
               onChangeText={setOtp}
               error={error}
+              length={4}
             />
             {error && (
               <Text className="text-error mt-2 text-sm">{error}</Text>
@@ -85,7 +105,7 @@ export default function OTPVerification() {
           <Button
             title={isLoading ? 'Verifying...' : 'Verify'}
             onPress={handleVerifyOTP}
-            disabled={isLoading || otp.length !== 6}
+            disabled={isLoading || otp.length !== 4}
             className="mt-6"
           />
 

@@ -9,10 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('mayowa');
+  const [lastName, setLastName] = useState('adeyeye');
+  const [email, setEmail] = useState('testing3@gmail.com');
+  const [password, setPassword] = useState('maximus123');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -39,7 +39,10 @@ export default function RegisterScreen() {
     try {
       setIsLoading(true);
       await register(firstName, lastName, email, password);
-      router.replace('/(app)/home');
+      router.replace({
+        pathname: '/(auth)/otp-verification',
+        params: { email }
+      });
     } catch (error: any) {
       setErrorMessage(error?.message || 'Registration failed');
       setShowError(true);
