@@ -280,69 +280,69 @@ export default function Accounts() {
     </View>
   );
 
-  const renderRecentTransactions = () => (
-    <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Recent Transactions</Text>
-        <TouchableOpacity>
-          <Text style={{ fontSize: 14, color: colors.primary.main, fontWeight: '500' }}>View All</Text>
-        </TouchableOpacity>
-      </View>
+  // const renderRecentTransactions = () => (
+  //   <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+  //     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+  //       <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Recent Transactions</Text>
+  //       <TouchableOpacity>
+  //         <Text style={{ fontSize: 14, color: colors.primary.main, fontWeight: '500' }}>View All</Text>
+  //       </TouchableOpacity>
+  //     </View>
       
-      <View style={{ 
-        backgroundColor: 'white', 
-        borderRadius: 12, 
-        padding: 16,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ 
-              width: 40, 
-              height: 40, 
-              borderRadius: 20, 
-              backgroundColor: colors.primary.light,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: 12
-            }}>
-              <MaterialCommunityIcons name="arrow-up" size={20} color={colors.primary.main} />
-            </View>
-            <View>
-              <Text style={{ fontWeight: '500', color: '#111827' }}>Transfer to John</Text>
-              <Text style={{ fontSize: 14, color: '#6B7280' }}>Today, 2:30 PM</Text>
-            </View>
-          </View>
-          <Text style={{ fontWeight: '600', color: '#111827' }}>-₦5,000.00</Text>
-        </View>
+  //     <View style={{ 
+  //       backgroundColor: 'white', 
+  //       borderRadius: 12, 
+  //       padding: 16,
+  //       elevation: 2,
+  //       shadowColor: '#000',
+  //       shadowOffset: { width: 0, height: 2 },
+  //       shadowOpacity: 0.1,
+  //       shadowRadius: 4,
+  //     }}>
+  //       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+  //         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  //           <View style={{ 
+  //             width: 40, 
+  //             height: 40, 
+  //             borderRadius: 20, 
+  //             backgroundColor: colors.primary.light,
+  //             alignItems: 'center',
+  //             justifyContent: 'center',
+  //             marginRight: 12
+  //           }}>
+  //             <MaterialCommunityIcons name="arrow-up" size={20} color={colors.primary.main} />
+  //           </View>
+  //           <View>
+  //             <Text style={{ fontWeight: '500', color: '#111827' }}>Transfer to John</Text>
+  //             <Text style={{ fontSize: 14, color: '#6B7280' }}>Today, 2:30 PM</Text>
+  //           </View>
+  //         </View>
+  //         <Text style={{ fontWeight: '600', color: '#111827' }}>-₦5,000.00</Text>
+  //       </View>
         
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ 
-              width: 40, 
-              height: 40, 
-              borderRadius: 20, 
-              backgroundColor: '#D1FAE5',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: 12
-            }}>
-              <MaterialCommunityIcons name="arrow-down" size={20} color={colors.success.main} />
-            </View>
-            <View>
-              <Text style={{ fontWeight: '500', color: '#111827' }}>Salary Payment</Text>
-              <Text style={{ fontSize: 14, color: '#6B7280' }}>Yesterday, 9:00 AM</Text>
-            </View>
-          </View>
-          <Text style={{ fontWeight: '600', color: '#059669' }}>+₦150,000.00</Text>
-        </View>
-      </View>
-    </View>
-  );
+  //       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+  //         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  //           <View style={{ 
+  //             width: 40, 
+  //             height: 40, 
+  //             borderRadius: 20, 
+  //             backgroundColor: '#D1FAE5',
+  //             alignItems: 'center',
+  //             justifyContent: 'center',
+  //             marginRight: 12
+  //           }}>
+  //             <MaterialCommunityIcons name="arrow-down" size={20} color={colors.success.main} />
+  //           </View>
+  //           <View>
+  //             <Text style={{ fontWeight: '500', color: '#111827' }}>Salary Payment</Text>
+  //             <Text style={{ fontSize: 14, color: '#6B7280' }}>Yesterday, 9:00 AM</Text>
+  //           </View>
+  //         </View>
+  //         <Text style={{ fontWeight: '600', color: '#059669' }}>+₦150,000.00</Text>
+  //       </View>
+  //     </View>
+  //   </View>
+  // );
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -366,7 +366,7 @@ export default function Accounts() {
       {renderCurrencySelector()}
       {renderAccountCard()}
       {renderQuickActions()}
-      {renderRecentTransactions()}
+      {/* {renderRecentTransactions()} */}
 
       <ErrorModal
         visible={showErrorModal}

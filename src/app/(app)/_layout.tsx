@@ -57,6 +57,7 @@ export default function AppLayout() {
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <MaterialCommunityIcons name="send" size={size} color={color} />
           ),
+          href: null,
         }}
       />
       <Tabs.Screen

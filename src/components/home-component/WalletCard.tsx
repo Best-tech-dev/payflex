@@ -80,7 +80,7 @@ const WalletCard: React.FC<WalletCardProps> = ({
   }
 
   return (
-    <View style={{ paddingHorizontal: 24, marginBottom: 14 }}>
+    <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
       <View style={{ 
         backgroundColor: colors.primary.main, 
         borderRadius: 24, 
@@ -92,13 +92,32 @@ const WalletCard: React.FC<WalletCardProps> = ({
       }}>
         <View className='flex-row justify-between'>
           <Text style={{ color: 'white', fontSize: 14, marginBottom: 4 }}>NGN Balance: </Text>
-          <MaterialCommunityIcons name="currency-ngn" size={24} color="green" backgroundColor='white' />
+          <View style={{ 
+            width: 32, 
+            height: 32, 
+            borderRadius: 16, 
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Text style={{ color: 'white', fontSize: 24 }}>🇳🇬</Text>
+          </View>
         </View>
         
         {isValidValue(balance) ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <MaterialCommunityIcons name="currency-ngn" size={24} color="white"/>
-            <Text style={{ fontWeight: '600', color: 'white', marginBottom: 16 }} className='text-3xl'>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ 
+              width: 28, 
+              height: 28, 
+              borderRadius: 14, 
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 8
+            }}>
+              <MaterialCommunityIcons name="currency-ngn" size={18} color="white" />
+            </View>
+            <Text style={{ fontWeight: '600', color: 'white' }} className='text-3xl'>
               {balance}
             </Text>
           </View>
@@ -113,7 +132,20 @@ const WalletCard: React.FC<WalletCardProps> = ({
           <View>
             <Text style={{ color: 'white', fontSize: 14 }}>Income/m</Text>
             {isValidValue(income) ? (
-              <Text style={{ color: 'white', fontWeight: '600' }}>#{income}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ 
+                  width: 20, 
+                  height: 20, 
+                  borderRadius: 10, 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 4
+                }}>
+                  <MaterialCommunityIcons name="currency-ngn" size={14} color="white" />
+                </View>
+                <Text style={{ color: 'white', fontWeight: '600' }}>{income}</Text>
+              </View>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <MaterialCommunityIcons name="arrow-down" size={16} color="white" />
@@ -125,7 +157,20 @@ const WalletCard: React.FC<WalletCardProps> = ({
           <View>
             <Text style={{ color: 'white', fontSize: 14 }}>Expenses/m</Text>
             {isValidValue(expenses) ? (
-              <Text style={{ color: 'white', fontWeight: '600' }}>#{expenses}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ 
+                  width: 20, 
+                  height: 20, 
+                  borderRadius: 10, 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 4
+                }}>
+                  <MaterialCommunityIcons name="currency-ngn" size={14} color="white" />
+                </View>
+                <Text style={{ color: 'white', fontWeight: '600' }}>{expenses}</Text>
+              </View>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <MaterialCommunityIcons name="arrow-up" size={16} color="white" />
