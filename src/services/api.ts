@@ -167,6 +167,43 @@ export const api = {
   user: {
     getProfile: () => 
       apiFetch('/user/fetch-user-profile'),
+
+    getAppHomepageDetails: async () => {
+      const response = await apiFetch('/user/fetch-app-homepage-details');
+      const data = await response.json();
+      
+      
+      return data.data;
+    },
+
+    // profile page data 
+    getprofilePageData: async () => {
+      const response = await apiFetch('/user/app-user-profile-page');
+      // console.log("response from api.tsx: ", response)
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error fetching app details:", data.message);
+        throw new Error(data.message || 'Failed to fetch app details');
+      }
+
+      console.log("User profile page data fetched successfully")
+      return data.data;
+    },
+    
+    getAppDetails: async () => {
+      const response = await apiFetch('/user/fetch-user-app-details');
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error fetching app details:", data.message);
+        throw new Error(data.message || 'Failed to fetch app details');
+      }
+
+      console.log("User data successfully fetched: ");
+
+      return data.data;
+    },
     
     // updateProfile: (data: any) => 
     //   apiFetch('/users/profile', {

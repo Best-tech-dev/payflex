@@ -114,82 +114,91 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
       {/* Transactions list */}
       {!loading && !error && transactions && transactions.length > 0 && (
         <View style={{ marginBottom: 16 }}>
-          {transactions.slice(0, 3).map((transaction) => (
-            <View
-              key={transaction.id}
-              style={{
-                backgroundColor: 'white',
-                padding: 16,
-                borderRadius: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-                marginBottom: 8,
-              }}
-            >
+          {transactions.slice(0, 2).map((transaction) => {
+            // console.log('Transaction:', {
+            //   id: transaction.id,
+            //   credit_debit: transaction.credit_debit,
+            //   type: transaction.type,
+            //   amount: transaction.amount,
+            //   description: transaction.description
+            // });
+            return (
               <View
+                key={transaction.id}
                 style={{
-                  width: 40,
-                  height: 40,
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: 999,
+                  backgroundColor: 'white',
+                  padding: 16,
+                  borderRadius: 12,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  marginBottom: 8,
                 }}
               >
-                <Text style={{ fontSize: 16 }}>{transaction.icon}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
+                <View
                   style={{
-                    fontWeight: '500',
-                    color: '#111827',
-                    fontSize: 14,
-                    marginBottom: 4,
+                    width: 40,
+                    height: 40,
+                    backgroundColor: transaction.credit_debit === 'credit' ? '#D1FAE5' : '#FEE2E2',
+                    borderRadius: 999,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
                   }}
                 >
-                  {transaction.description}
-                </Text>
-                <Text style={{ color: '#6B7280', fontSize: 12 }}>{transaction.date}</Text>
+                  <MaterialCommunityIcons 
+                    name={transaction.credit_debit === 'credit' ? 'arrow-up' : 'arrow-down'} 
+                    size={20} 
+                    color={transaction.credit_debit === 'credit' ? '#10B981' : '#EF4444'} 
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontWeight: '500',
+                      color: '#111827',
+                      fontSize: 14,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {transaction.description}
+                  </Text>
+                  <Text style={{ color: '#6B7280', fontSize: 12 }}>{transaction.date}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text
+                    style={{
+                      fontWeight: '600',
+                      color: transaction.credit_debit === 'credit' ? '#10B981' : '#EF4444',
+                      fontSize: 14,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {transaction.credit_debit === 'credit' 
+                      ? `+₦${transaction.amount.toLocaleString()}` 
+                      : `-₦${transaction.amount.toLocaleString()}`
+                    }
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color:
+                        transaction.status === 'success'
+                          ? '#10B981'
+                          : transaction.status === 'pending'
+                          ? '#F59E0B'
+                          : '#EF4444',
+                    }}
+                  >
+                    {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                  </Text>
+                </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-              <Text
-                style={{
-                  fontWeight: '600',
-                  color: transaction.credit_debit === 'credit' ? 'green' : 'red',
-                  fontSize: 14,
-                  marginBottom: 4,
-                }}
-              >
-                {
-                transaction.credit_debit === 'credit' 
-                ? 
-                `+₦${transaction.amount.toLocaleString()}` 
-                : 
-                `-₦${transaction.amount.toLocaleString()}
-                `
-              }
-              </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color:
-                      transaction.status === 'success'
-                        ? '#10B981'
-                        : transaction.status === 'pending'
-                        ? '#F59E0B'
-                        : '#EF4444',
-                  }}
-                >
-                  {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
-                </Text>
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </View>

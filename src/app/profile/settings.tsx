@@ -40,7 +40,7 @@ export default function SettingsScreen() {
   };
 
   const renderSettingItem = (
-    icon: string,
+    icon: keyof typeof MaterialCommunityIcons.glyphMap,
     title: string,
     description: string,
     rightElement: React.ReactNode

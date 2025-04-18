@@ -1,27 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
-import { Select } from '@/components/common/Select';
 import { Loader } from '@/components/Loader';
 import { SuccessModal } from '@/components/SuccessModal';
 import { ErrorModal } from '@/components/ErrorModal';
 import { colors } from '@/constants/theme';
+import { api } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/contexts/AuthContext';
+import { Select } from '@/components/common/Select';
+import { Input } from '@/components/Input';
 
 // Document type options
 const documentTypes = [
-  { label: 'National ID', value: 'national_id' },
-  { label: 'International Passport', value: 'passport' },
-  { label: 'Driver\'s License', value: 'drivers_license' },
-  { label: 'Voter\'s Card', value: 'voters_card' },
+  { label: 'BVN Verification', value: 'NIGERIAN_BVN_VERIFICATION', disabled: false },
+  { label: 'NIN', value: 'NIGERIAN_NIN', disabled: true },
+  { label: 'International Passport', value: 'NIGERIAN_INTERNATIONAL_PASSPORT', disabled: true },
+  { label: 'PVC', value: 'NIGERIAN_PVC', disabled: true },
 ];
 
 export default function KYCScreen() {
+  const { isAuthenticated } = useAuth();
   const [step, setStep] = useState(1);
-  const [documentType, setDocumentType] = useState('');
+  const [documentType, setDocumentType] = useState('NIGERIAN_BVN_VERIFICATION');
   const [documentNumber, setDocumentNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -31,21 +35,55 @@ export default function KYCScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [appData, setAppData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const handleNext = () => {
-    if (step < 3) {
-      setStep(step + 1);
-    } else {
-      handleSubmit();
-    }
-  };
+  useEffect(() => {
+    const loadCachedData = async () => {
+      try {
+        const cachedData = await AsyncStorage.getItem('appDetails');
+        if (cachedData) {
+          const parsedData = JSON.parse(cachedData);
+          setAppData(parsedData);
+        }
+      } catch (error) {
+        console.error('Error loading cached data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    } else {
-      router.back();
+    loadCachedData();
+  }, []);
+
+  const handleSubmit = () => {
+    // Validate all required fields
+    if (!documentNumber) {
+      setErrorMessage('Please enter your BVN');
+      setShowError(true);
+      return;
     }
+
+    if (!agreeToTerms) {
+      setErrorMessage('Please agree to the terms and conditions');
+      setShowError(true);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false);
+      setShowSuccess(true);
+      
+      // Hide success message after 2 seconds and go back
+      setTimeout(() => {
+        setShowSuccess(false);
+        router.back();
+      }, 2000);
+    }, 2000);
   };
 
   const handleUploadImage = (type: 'front' | 'back' | 'selfie') => {
@@ -69,167 +107,51 @@ export default function KYCScreen() {
     }, 1000);
   };
 
-  const handleSubmit = () => {
-    // Validate all required fields
-    if (!documentType || !documentNumber || !expiryDate || !frontImage || !backImage || !selfieImage) {
-      setErrorMessage('Please complete all required fields');
-      setShowError(true);
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowSuccess(true);
-      
-      // Hide success message after 2 seconds and go back
-      setTimeout(() => {
-        setShowSuccess(false);
-        router.back();
-      }, 2000);
-    }, 2000);
-  };
-
-  const renderStepIndicator = () => (
-    <View style={styles.stepIndicator}>
-      {[1, 2, 3].map((s) => (
-        <View key={s} style={styles.stepContainer}>
-          <View style={[styles.step, s === step ? styles.activeStep : null]}>
-            <Text style={[styles.stepText, s === step ? styles.activeStepText : null]}>
-              {s}
-            </Text>
-          </View>
-          {s < 3 && (
-            <View style={[styles.stepLine, s < step ? styles.activeStepLine : null]} />
-          )}
-        </View>
-      ))}
-    </View>
-  );
-
-  const renderStepContent = () => {
-    switch (step) {
-      case 1:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Document Information</Text>
-            <Text style={styles.stepDescription}>
-              Please provide your identification document details
-            </Text>
-            
-            <Select
-              label="Document Type"
-              value={documentType}
-              options={documentTypes}
-              onChange={setDocumentType}
-              placeholder="Select document type"
-            />
-            
-            <Input
-              label="Document Number"
-              value={documentNumber}
-              onChangeText={setDocumentNumber}
-              placeholder="Enter document number"
-            />
-            
-            <Input
-              label="Expiry Date"
-              value={expiryDate}
-              onChangeText={setExpiryDate}
-              placeholder="YYYY-MM-DD"
-            />
-          </View>
-        );
-      
-      case 2:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Document Images</Text>
-            <Text style={styles.stepDescription}>
-              Please upload clear images of your identification document
-            </Text>
-            
-            <View style={styles.imageUploadContainer}>
-              <TouchableOpacity
-                style={styles.imageUpload}
-                onPress={() => handleUploadImage('front')}
-              >
-                {frontImage ? (
-                  <Image source={{ uri: frontImage }} style={styles.uploadedImage} />
-                ) : (
-                  <View style={styles.uploadPlaceholder}>
-                    <MaterialCommunityIcons name="camera" size={32} color={colors.primary.main} />
-                    <Text style={styles.uploadText}>Front of Document</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.imageUpload}
-                onPress={() => handleUploadImage('back')}
-              >
-                {backImage ? (
-                  <Image source={{ uri: backImage }} style={styles.uploadedImage} />
-                ) : (
-                  <View style={styles.uploadPlaceholder}>
-                    <MaterialCommunityIcons name="camera" size={32} color={colors.primary.main} />
-                    <Text style={styles.uploadText}>Back of Document</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
-      
-      case 3:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Selfie Verification</Text>
-            <Text style={styles.stepDescription}>
-              Please take a selfie to verify your identity
-            </Text>
-            
-            <View style={styles.selfieContainer}>
-              <TouchableOpacity
-                style={styles.selfieUpload}
-                onPress={() => handleUploadImage('selfie')}
-              >
-                {selfieImage ? (
-                  <Image source={{ uri: selfieImage }} style={styles.uploadedSelfie} />
-                ) : (
-                  <View style={styles.uploadPlaceholder}>
-                    <MaterialCommunityIcons name="face-man" size={32} color={colors.primary.main} />
-                    <Text style={styles.uploadText}>Take Selfie</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
-      
-      default:
-        return null;
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {renderStepIndicator()}
-        {renderStepContent()}
+        <View style={styles.stepContent}>
+          <Text style={styles.stepTitle}>BVN Verification</Text>
+          <Text style={styles.stepDescription}>
+            Please provide your BVN for verification
+          </Text>
+          
+          <Input
+            label="BVN Number"
+            value={documentNumber}
+            onChangeText={setDocumentNumber}
+            placeholder="Enter your BVN"
+            keyboardType="numeric"
+            maxLength={11}
+          />
+
+          <View style={styles.termsContainer}>
+            <TouchableOpacity 
+              style={styles.termsCheckbox}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
+            >
+              <MaterialCommunityIcons 
+                name={agreeToTerms ? "checkbox-marked" : "checkbox-blank-outline"} 
+                size={24} 
+                color={agreeToTerms ? colors.primary.main : colors.text.secondary} 
+              />
+              <Text style={styles.termsText}>
+                I agree to the Terms of Service and Conditions
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         
         <View style={styles.buttonContainer}>
           <Button
-            title={step === 1 ? "Cancel" : "Back"}
+            title="Cancel"
             variant="outline"
-            onPress={handleBack}
+            onPress={() => router.back()}
             style={styles.backButton}
           />
           <Button
-            title={step === 3 ? "Submit" : "Next"}
-            onPress={handleNext}
+            title="Verify"
+            onPress={handleSubmit}
             style={styles.nextButton}
           />
         </View>
@@ -242,7 +164,7 @@ export default function KYCScreen() {
       <SuccessModal
         visible={showSuccess}
         title="Verification Submitted"
-        message="Your KYC verification has been submitted successfully. We'll notify you once it's approved."
+        message="Your BVN verification has been submitted successfully. We'll notify you once it's approved."
         onClose={() => setShowSuccess(false)}
       />
 
@@ -318,6 +240,24 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 24,
   },
+  infoContainer: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
   imageUploadContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -378,5 +318,18 @@ const styles = StyleSheet.create({
   nextButton: {
     flex: 1,
     marginLeft: 12,
+  },
+  termsContainer: {
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  termsCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  termsText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.text.secondary,
   },
 }); 

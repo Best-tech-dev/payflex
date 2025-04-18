@@ -42,7 +42,7 @@ const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
         {/* Left: Welcome Text */}
         <View className='flex-row items-center gap-2'>
           <Image
-            source={require('@/assets/images/bernard-2.png')}
+            source={{ uri: 'https://res.cloudinary.com/dwqurinck/image/upload/w_1000,c_fill,ar_1:1,g_auto,r_max,bo_5px_solid_red,b_rgb:262c35/v1744555156/bernard-image_hfk66b.jpg' }}
             style={{ width: 45, height: 45, borderRadius: 999, marginRight: 8 }}
             resizeMode="cover"
           />

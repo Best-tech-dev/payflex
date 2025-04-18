@@ -1,175 +1,269 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import TransactionHistory from '@/components/TransactionHistory';
+import { api } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Mock data for bank accounts
-const bankAccounts = [
-  { 
-    id: '1', 
-    currency: 'USD',
-    accountNumber: '1234567890',
-    bankName: 'PayFlex Bank',
-    balance: 12345.67,
-    transactions: [
-      { id: '1', type: 'credit' as const, amount: 5000, description: 'Salary Payment', date: 'Apr 8th, 17:23:58', status: 'successful' as const },
-      { id: '2', type: 'debit' as const, amount: 1500, description: 'Netflix Subscription', date: 'Apr 7th, 14:15:30', status: 'pending' as const },
-      { id: '3', type: 'credit' as const, amount: 2000, description: 'Freelance Work', date: 'Apr 6th, 09:45:12', status: 'successful' as const },
-    ]
-  },
-  { 
-    id: '2', 
-    currency: 'EUR',
-    accountNumber: '0987654321',
-    bankName: 'PayFlex Bank',
-    balance: 4567.89,
-    transactions: [
-      { id: '4', type: 'credit' as const, amount: 1000, description: 'Client Payment', date: 'Apr 5th, 11:30:45', status: 'successful' as const },
-      { id: '5', type: 'debit' as const, amount: 500, description: 'Amazon Purchase', date: 'Apr 4th, 16:20:10', status: 'successful' as const },
-    ]
-  },
-];
+// Available currencies
+const AVAILABLE_CURRENCIES = ['NGN', 'USD', 'EUR', 'GBP'];
+
+interface Account {
+  id: string;
+  currency: string;
+  accountNumber: string;
+  bankName: string;
+  accountType: string;
+  accountName: string;
+  sortCode?: string;
+  iban?: string;
+  swiftCode: string;
+  balance: number;
+  availableBalance: number;
+  lastTransactionDate: string;
+  status: string;
+  country: string;
+  flagColors: string[];
+}
 
 export default function Accounts() {
-  const [selectedAccount, setSelectedAccount] = useState(bankAccounts[0]);
-  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [selectedCurrency, setSelectedCurrency] = useState('NGN');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAccounts = async () => {
+    try {
+      // Check cache first
+      const cachedAccounts = await AsyncStorage.getItem('user_accounts');
+      if (cachedAccounts) {
+        setAccounts(JSON.parse(cachedAccounts));
+        setIsLoading(false);
+        return;
+      }
+
+      // If no cache, fetch from API
+      const response = await api.wallet.fetchWallet();
+      const userAccounts = response.accounts || [];
+      
+      // Transform API response to match our Account interface
+      const formattedAccounts = userAccounts.map((account: any) => ({
+        id: account.id,
+        currency: account.currency,
+        accountNumber: account.accountNumber,
+        bankName: account.bankName || 'PayFlex Bank',
+        accountType: account.accountType || 'Savings',
+        accountName: account.accountName,
+        sortCode: account.sortCode,
+        iban: account.iban,
+        swiftCode: account.swiftCode,
+        balance: account.balance,
+        availableBalance: account.availableBalance,
+        lastTransactionDate: account.lastTransactionDate,
+        status: account.status,
+        country: account.country,
+        flagColors: getFlagColors(account.currency)
+      }));
+
+      // Cache the accounts
+      await AsyncStorage.setItem('user_accounts', JSON.stringify(formattedAccounts));
+      
+      setAccounts(formattedAccounts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch accounts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const getFlagColors = (currency: string): string[] => {
+    switch (currency) {
+      case 'NGN':
+        return ['#008751', '#FFFFFF', '#008751'];
+      case 'USD':
+        return ['#B22234', '#FFFFFF', '#3C3B6E'];
+      case 'EUR':
+        return ['#003399', '#FFCC00', '#003399'];
+      case 'GBP':
+        return ['#012169', '#FFFFFF', '#C8102E'];
+      default:
+        return ['#008751', '#FFFFFF', '#008751'];
+    }
+  };
+
+  const generateNewAccount = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.wallet.generateOneTimeAccount(0); // 0 amount for now
+      // Refresh accounts after generating new one
+      await fetchAccounts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate account');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderCurrencySelector = () => (
+    <View className="h-12 mb-4">
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        className="px-4"
+        contentContainerStyle={{ height: 40, alignItems: 'center' }}
+      >
+        {AVAILABLE_CURRENCIES.map((currency) => (
+          <TouchableOpacity
+            key={currency}
+            style={[
+              { marginRight: 12, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+              selectedCurrency === currency 
+                ? { backgroundColor: colors.primary.main } 
+                : { backgroundColor: 'white' }
+            ]}
+            onPress={() => setSelectedCurrency(currency)}
+          >
+            <Text style={[
+              { fontSize: 14, fontWeight: '500' },
+              selectedCurrency === currency 
+                ? { color: 'white' } 
+                : { color: '#6B7280' }
+            ]}>
+              {currency}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderAccountCard = () => {
+    const account = accounts.find(acc => acc.currency === selectedCurrency);
+    
+    if (isLoading) {
+      return (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color={colors.primary.main} />
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-red-500 text-center">{error}</Text>
+        </View>
+      );
+    }
+
+    if (!account) {
+      return (
+        <View className="flex-1 justify-center items-center px-4">
+          <Text className="text-gray-600 text-center mb-4">
+            You don't have a {selectedCurrency} account yet
+          </Text>
+          <TouchableOpacity 
+            className="bg-primary px-6 py-3 rounded-full"
+            onPress={generateNewAccount}
+            disabled={isLoading}
+          >
+            <Text className="text-white font-medium">
+              {isLoading ? 'Generating...' : 'Generate New Account'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View 
+        className="mx-4 rounded-2xl p-5 shadow-sm"
+        style={{ backgroundColor: account.flagColors[0] }}
+      >
+        <View className="flex-row justify-between items-center mb-6">
+          <View>
+            <Text className="text-white text-lg font-bold">{account.bankName}</Text>
+            <Text className="text-white/80 text-sm">{account.accountType}</Text>
+          </View>
+          <View className="bg-white/20 px-3 py-1.5 rounded-full">
+            <Text className="text-white font-medium">{account.currency}</Text>
+          </View>
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-white/80 text-sm mb-1">Available Balance</Text>
+          <Text className="text-white text-3xl font-bold">
+            {account.currency} {account.availableBalance.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
+          </Text>
+          <Text className="text-white/80 text-sm mt-1">
+            Total Balance: {account.currency} {account.balance.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
+          </Text>
+        </View>
+
+        <View className="bg-white/10 rounded-xl p-4">
+          <View className="mb-3">
+            <Text className="text-white/80 text-xs mb-1">Account Number</Text>
+            <Text className="text-white text-sm font-medium">{account.accountNumber}</Text>
+          </View>
+          {account.routingNumber && (
+            <View className="mb-3">
+              <Text className="text-white/80 text-xs mb-1">Routing Number</Text>
+              <Text className="text-white text-sm font-medium">{account.routingNumber}</Text>
+            </View>
+          )}
+          {account.sortCode && (
+            <View className="mb-3">
+              <Text className="text-white/80 text-xs mb-1">Sort Code</Text>
+              <Text className="text-white text-sm font-medium">{account.sortCode}</Text>
+            </View>
+          )}
+          {account.iban && (
+            <View className="mb-3">
+              <Text className="text-white/80 text-xs mb-1">IBAN</Text>
+              <Text className="text-white text-sm font-medium">{account.iban}</Text>
+            </View>
+          )}
+          <View>
+            <Text className="text-white/80 text-xs mb-1">SWIFT Code</Text>
+            <Text className="text-white text-sm font-medium">{account.swiftCode}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <ScrollView style={{ flex: 1 }}>
-        {/* Header */}
-        <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>Accounts</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <TouchableOpacity 
-                style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  backgroundColor: 'white', 
-                  padding: 8, 
-                  borderRadius: 8,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 2,
-                }}
-                onPress={() => setShowCurrencyModal(true)}
-              >
-                <Text style={{ marginRight: 8, color: '#111827' }}>{selectedAccount.currency}</Text>
-                <MaterialCommunityIcons name="chevron-down" size={16} color="#111827" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  backgroundColor: colors.primary.main, 
-                  paddingHorizontal: 12,
-                  paddingVertical: 8, 
-                  borderRadius: 20,
-                }}
-              >
-                <MaterialCommunityIcons name="plus" size={16} color="white" />
-                <Text style={{ marginLeft: 4, color: 'white', fontSize: 12, fontWeight: '500' }}>Add Account</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="flex-row justify-between items-center p-4">
+        <Text className="text-2xl font-bold text-gray-900">Accounts</Text>
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.primary.main,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 20
+          }}
+        >
+          <MaterialCommunityIcons name="plus" size={16} color="white" />
+          <Text className="text-white text-sm font-medium ml-1">Add Account</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Account Details */}
-        <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
-          <View style={{ 
-            backgroundColor: 'white', 
-            borderRadius: 16, 
-            padding: 24,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.1,
-            shadowRadius: 2,
-          }}>
-            <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 8 }}>Account Number</Text>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 16 }}>
-              {selectedAccount.accountNumber}
-            </Text>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View>
-                <Text style={{ color: '#6B7280', fontSize: 14 }}>Bank Name</Text>
-                <Text style={{ fontSize: 16, fontWeight: '500', color: '#111827' }}>{selectedAccount.bankName}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: '#6B7280', fontSize: 14 }}>Available Balance</Text>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
-                  {selectedAccount.currency} {selectedAccount.balance.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Transaction History */}
-        <TransactionHistory 
-          transactions={selectedAccount.transactions}
-          onViewAll={() => {}}
-        />
-      </ScrollView>
-
-      {/* Currency Selection Modal */}
-      <Modal
-        visible={showCurrencyModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowCurrencyModal(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ 
-            backgroundColor: 'white', 
-            borderTopLeftRadius: 24, 
-            borderTopRightRadius: 24, 
-            padding: 24 
-          }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>Select Account</Text>
-              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
-            </View>
-            {bankAccounts.map((account) => (
-              <TouchableOpacity
-                key={account.id}
-                style={{ 
-                  flexDirection: 'row', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  paddingVertical: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#E5E7EB'
-                }}
-                onPress={() => {
-                  setSelectedAccount(account);
-                  setShowCurrencyModal(false);
-                }}
-              >
-                <View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#111827' }}>{account.currency} Account</Text>
-                  <Text style={{ fontSize: 14, color: '#6B7280' }}>{account.accountNumber}</Text>
-                </View>
-                <Text style={{ fontSize: 16, color: '#111827' }}>
-                  {account.currency} {account.balance.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Modal>
+      {renderCurrencySelector()}
+      {renderAccountCard()}
     </SafeAreaView>
   );
 } 

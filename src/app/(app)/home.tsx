@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppPin } from '@/contexts/AppPinContext';
 import { colors } from '@/constants/theme';
 import { Wallet } from '@/types/user';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import components
 import Navbar from '@/components/home-component/Navbar';
@@ -16,7 +17,6 @@ import AdvertisementCard from '@/components/home-component/Advertisement';
 import FloatingActionButton from '@/components/home-component/FloatingAction';
 import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define proper type for Material Community Icons
 type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -44,17 +44,14 @@ export default function Home() {
   const messageParam = Array.isArray(params.message) ? params.message[0] : params.message;
   const transactionId = Array.isArray(params.transactionId) ? params.transactionId[0] : params.transactionId;
 
-  const [walletData, setWalletData] = useState<Wallet | null>(null);
+  const [appData, setAppData] = useState<{
+    user: any;
+    wallet_card: Wallet;
+    transaction_history: any[];
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState([]);
-  const [walletLoading, setWalletLoading] = useState(false);
-  const [transactionsLoading, setTransactionsLoading] = useState(false);
-  const [walletError, setWalletError] = useState(null);
-  const [transactionsError, setTransactionsError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [userData, setUserData] = useState<{ name: string; first_name?: string; profile_data?: { first_name?: string } } | null>(null);
-  const [userLoading, setUserLoading] = useState(false);
-  const [userError, setUserError] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const { url, reference } = params;
   
@@ -64,94 +61,32 @@ export default function Home() {
   // Get payment return params
   const newBalance = Array.isArray(params.newBalance) ? params.newBalance[0] : params.newBalance;
 
-  // //////////////////////////////////////////////////// Fetch wallet
-  const fetchWallet = async () => {
-    if (!isAuthenticated) {
-      router.replace('/(auth)/login');
-    }
-
-    setWalletLoading(true);
-    setWalletError(null);
-    try {
-      // Add artificial delay in development
-      // if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const walletResponse = await api.wallet.fetchWallet();
-      setWalletData(walletResponse.wallet);
-    } catch (error: any) {
-      setWalletError(error.message || 'Failed to load wallet');
-    } finally {
-      setWalletLoading(false);
-    }
-  };
-
-  // //////////////////////////////////////////////////// Fetch transactions
-  const fetchTransactions = async () => {
+  const fetchAppDetails = async () => {
     if (!isAuthenticated) {
       router.replace('/(auth)/login');
       return;
     }
-  
-    setTransactionsLoading(true);
-    setTransactionsError(null);
-  
+
+    setLoading(true);
+    setError(null);
     try {
-      // Add artificial delay in development
-      // if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // This already returns the parsed data.data
-      const data = await api.wallet.fetchTransactions();
-      
-      // Extracting transactions array from the response
-      const transactions = data.transactions.map((tx: any) => ({
-        id: tx.id,
-        type: tx.type,
-        amount: parseFloat(tx.amount.replace(/,/g, '')),
-        description: tx.description,
-        date: tx.date,
-        icon: tx.icon || '💸',
-        status: tx.status,
-        credit_debit: tx.credit_debit,
-        color: tx.credit_debit === 'credit' ? colors.success.main : colors.error.main,
-      }));
+      // Fetch fresh data
+      const data = await api.user.getAppHomepageDetails();
+      console.log("Homepage data fetched successfully")
+      setAppData(data);
 
-      // console.log("Transactions: ", transactions);
-  
-      setTransactions(transactions);
     } catch (error: any) {
-      setTransactionsError(error.message || 'Failed to load transactions');
+      setError(error.message || 'Failed to load app details');
     } finally {
-      setTransactionsLoading(false);
-    }
-  };
-  
-  // //////////////////////////////////////////////////// Fetch user profile
-  const fetchUserProfile = async () => {
-    setUserLoading(true);
-    setUserError(null);
-    try {
-      // Add artificial delay in development
-      // if (__DEV__) await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const userProfile = await api.user.getProfile();
-      const userProfileData = await userProfile.json();
-
-      if (!userProfileData.success) {
-        throw new Error(userProfileData.message || 'Failed to load user profile');
-      }
-
-      setUserData(userProfileData.data.profile_data);
-    } catch (error: any) {
-      setUserError(error.message || 'Failed to load user profile');
-    } finally {
-      setUserLoading(false);
+      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([fetchWallet(), fetchUserProfile(), fetchTransactions()]); 
+      await fetchAppDetails();
     } finally {
       setRefreshing(false);
     }
@@ -205,9 +140,8 @@ export default function Home() {
             console.error('No reference found in AsyncStorage');
           }
   
-          // Refresh wallet and transactions
-          fetchWallet();
-          fetchTransactions();
+          // Refresh app details
+          fetchAppDetails();
   
           // Show success alert
           Alert.alert(
@@ -226,9 +160,7 @@ export default function Home() {
   );
 
   useEffect(() => {
-    fetchWallet();
-    fetchTransactions();
-    fetchUserProfile();
+    fetchAppDetails();
   }, []);
 
   const handleSeeAllTransactions = () => {
@@ -252,23 +184,23 @@ export default function Home() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Navbar userName={userData?.first_name || '...'} />
+        <Navbar userName={appData?.user?.first_name || '...'} />
 
         <WalletCard 
-          balance={walletData?.current_balance?.toString() || '0'} 
-          income={walletData?.all_time_fuunding?.toString() || '0'} 
-          expenses={walletData?.all_time_withdrawn?.toString() || '0'} 
-          loading={walletLoading}
-          error={walletError}
-          onPress={fetchWallet}
+          balance={appData?.wallet_card?.current_balance?.toString() || '0'} 
+          income={appData?.wallet_card?.all_time_fuunding?.toString() || '0'} 
+          expenses={appData?.wallet_card?.all_time_withdrawn?.toString() || '0'} 
+          loading={loading}
+          error={error}
+          onPress={fetchAppDetails}
         />
         <QuickActions actions={quickActions} />
         <TransactionHistory 
-          transactions={transactions} 
-          loading={transactionsLoading}
-          error={transactionsError}
+          transactions={appData?.transaction_history || []} 
+          loading={loading}
+          error={error}
           onSeeAllPress={handleSeeAllTransactions}
-          onRetry={fetchTransactions}
+          onRetry={fetchAppDetails}
         />
         <AdvertisementCard 
           title="Upgrade to Premium"
