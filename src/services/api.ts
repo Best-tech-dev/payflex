@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { logout } from './auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // API configuration
 // const API_URL = 'https://nestjs-payflex.onrender.com/api/v1';
@@ -282,12 +283,9 @@ export const api = {
       return data.data;
     },
 
-    fetchTransactions: async () => {
-      const response = await apiFetch('/history/fetch-all-history?limit=2');
+    fetchTransactions: async (limit: number) => {
+      const response = await apiFetch(`/history/fetch-all-history?limit=${limit}`);
       const data = await response.json();
-
-      // console.log("Res: ", response);
-      // console.log("retrieved transactions: ", data.data.transactions);
 
       if(!data.success) {
         console.log("Error fetching transactions data:", data.message);
@@ -295,6 +293,8 @@ export const api = {
       }
       return data.data;
     }
+
+    // 
   },
   
   // Add other API endpoints as needed
@@ -364,6 +364,42 @@ export const api = {
       });
       const result = await response.json();
       return result;
+    }
+  },
+
+  // Accounts
+  accounts: {
+    fetchUserAccounts: async () => {
+      const response = await apiFetch('/banking/fetch-user-virtual-accounts');
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error fetching user accounts:", data.message);
+        throw new Error(data.message || 'Failed to fetch user accounts');
+      }
+
+      console.log("(api.tsx) -- User accounts fetched successfully:", data.data);
+
+      await AsyncStorage.setItem('user_accounts', JSON.stringify(data.data));
+
+      return data.data;
+    },
+
+    // Create permanent account with flutter wave 
+    createPermanentAccount: async () => {
+      const response = await apiFetch('/banking/flw/create-permanent-virtual-account', {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error creating permanent account:", data.message);
+        throw new Error(data.message || 'Failed to create permanent account');
+      }
+
+      console.log("New virtual permanent acccount successfully created")
+
+      return data.data;
     }
   }
 };
