@@ -7,6 +7,7 @@ import { styled } from 'nativewind';
 import { api } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
+import ENV from '@/config/env';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -93,16 +94,19 @@ const ProfileScreen = () => {
     }
   };
 
+  const defaultDisplayPicture = ENV.DEFAULT_DISPLAY_PICTURE;
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <StyledScrollView className="flex-1">
         {/* Profile Header */}
-        <StyledView className="items-center py-6 px-4 bg-primary/5">
+        <StyledView className="items-center py-6 px-4 bg-primary/5 mt-20">
           <StyledView className="relative">
-            <StyledImage
-              source={{ uri: 'https://res.cloudinary.com/dwqurinck/image/upload/w_1000,c_fill,ar_1:1,g_auto,r_max,bo_5px_solid_red,b_rgb:262c35/v1744555156/bernard-image_hfk66b.jpg' }}
-              className="w-24 h-24 rounded-full"
-            />
+          <Image
+            source={{ uri: profileData?.user?.display_picture || defaultDisplayPicture }}
+            style={{ width: 45, height: 45, borderRadius: 999, marginRight: 8 }}
+            resizeMode="cover"
+          />
           </StyledView>
           <StyledText className="text-2xl font-bold mt-4">
             {profileData?.user?.first_name} {profileData?.user?.last_name}

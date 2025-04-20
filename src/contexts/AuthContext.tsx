@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, profileImage?: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>; // Add this function
 }
@@ -71,11 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("Auth state: ", { isAuthenticated, isPinSet, isPinVerified });
       
-      if (!isAuthenticated) {
+      // Check if we're on the register page
+      const isOnRegisterPage = currentRoutePath?.includes('register');
+      
+      if (!isAuthenticated && !isOnRegisterPage) {
         targetRoute = '/(auth)/login';
       } else if (isAuthenticated && isPinSet && !isPinVerified) {
         targetRoute = '/(auth)/pin-verify';
-      }else if (isAuthenticated && !isPinSet) {
+      } else if (isAuthenticated && !isPinSet) {
         targetRoute = '/(auth)/pin-setup';
       } 
       
@@ -226,7 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const register = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      const res = await api.auth.register(email, password, firstName, lastName);
+      const res = await api.auth.register(email, password, firstName, lastName,);
       const data = await res.json();
   
       if (!res.ok || !data.success) {

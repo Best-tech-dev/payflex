@@ -139,7 +139,7 @@ export default function LoginScreen() {
                     style={styles.image}
                   />
                   <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginTop: 24, marginBottom: 8 }}>
-                    Welcome Back
+                    Welcome
                   </Text>
                   <Text style={{ fontSize: 16, color: '#6B7280' }}>
                     Sign in to continue

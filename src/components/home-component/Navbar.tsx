@@ -5,13 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
+import ENV from '@/config/env';
 
 interface NavbarProps {
   userName: string;
+  displayPicture: string;
   loading?: boolean; // Add loading prop
 }
 
-const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
+const Navbar: React.FC<NavbarProps> = ({ userName, displayPicture, loading = false }) => {
   const { logout } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -36,13 +38,15 @@ const Navbar: React.FC<NavbarProps> = ({ userName, loading = false }) => {
     setShowLogoutModal(false);
   };
 
+  const defaultDisplayPicture = ENV.DEFAULT_DISPLAY_PICTURE;
+
   return (
     <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         {/* Left: Welcome Text */}
         <View className='flex-row items-center gap-2'>
           <Image
-            source={{ uri: 'https://res.cloudinary.com/dwqurinck/image/upload/w_1000,c_fill,ar_1:1,g_auto,r_max,bo_5px_solid_red,b_rgb:262c35/v1744555156/bernard-image_hfk66b.jpg' }}
+            source={{ uri: displayPicture || defaultDisplayPicture }}
             style={{ width: 45, height: 45, borderRadius: 999, marginRight: 8 }}
             resizeMode="cover"
           />
