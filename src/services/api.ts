@@ -378,7 +378,7 @@ export const api = {
         throw new Error(data.message || 'Failed to fetch user accounts');
       }
 
-      console.log("(api.tsx) -- User accounts fetched successfully:", data.data);
+      console.log("(api.tsx) -- User accounts fetched successfully:");
 
       await AsyncStorage.setItem('user_accounts', JSON.stringify(data.data));
 
@@ -400,6 +400,44 @@ export const api = {
       console.log("New virtual permanent acccount successfully created")
 
       return data.data;
+    }
+  },
+
+  // Cards
+  cards: {
+    fetchCards: async () => {
+      const response = await apiFetch('/cards');
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error fetching cards:", data.message);
+        throw new Error(data.message || 'Failed to fetch cards');
+      }
+
+      return data.data;
+    },
+
+    createCard: async (data: {currency: string, funding_amount: string, pin: string}) => {
+      try {
+
+        const response = await apiFetch('/cards/create', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+        const res = await response.json();
+  
+        if(!res.success) {
+          console.log("Error creating card:", res.message);
+          throw new Error(res.message || 'Failed to create card');
+        }
+  
+        return res.data;
+        
+      } catch (error) {
+        console.error("Error creating card:", error);
+        throw error;
+        
+      }
     }
   }
 };

@@ -223,7 +223,7 @@ useEffect(() => {
             incognito={false}
           />
 
-          {/* Manual verify button */}
+          {/* Manual verify button
           {!verifying && !loading && !error && (
           <StyledTouchableOpacity
             className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-blue-500 px-6 py-3 rounded-full z-20"
@@ -234,7 +234,7 @@ useEffect(() => {
           >
             <StyledText className="text-white font-medium">I’ve Completed Payment</StyledText>
           </StyledTouchableOpacity>
-        )}
+        )} */}
         </>
       )}
     </StyledSafeAreaView>

@@ -46,10 +46,10 @@ export default function Accounts() {
     try {
       setIsLoading(true);
       const response = await api.accounts.fetchUserAccounts();
-      console.log("(accounts.tsx) -- API Response:", response);
+      // console.log("(accounts.tsx) -- API Response:", response);
       
-      if (Array.isArray(response)) {
-        setAccounts(response);
+      if (Array.isArray(response)) { 
+        setAccounts(response);      
       } else {
         console.warn("(accounts.tsx) -- Invalid accounts data received:", response);
         setAccounts([]);
@@ -68,31 +68,23 @@ export default function Accounts() {
     fetchAccounts();
   }, []);
 
-  const getFlagColors = (currency: string): string[] => {
-    switch (currency) {
-      case 'NGN':
-        return ['#008751', '#FFFFFF', '#008751'];
-      case 'USD':
-        return ['#B22234', '#FFFFFF', '#3C3B6E'];
-      case 'EUR':
-        return ['#003399', '#FFCC00', '#003399'];
-      case 'GBP':
-        return ['#012169', '#FFFFFF', '#C8102E'];
-      default:
-        return ['#008751', '#FFFFFF', '#008751'];
-    }
-  };
-
   const generateNewAccount = async () => {
     try {
       setIsLoading(true);
       const response = await api.accounts.createPermanentAccount();
+
+      await fetchAccounts();
       
       if (response.success) {
         // Fetch updated accounts list
+        setIsLoading(true)
         await fetchAccounts();
+        setIsLoading(false)
         setShowSuccessModal(true);
       }
+
+      setIsLoading(false)
+
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to generate account');
       setShowErrorModal(true);
@@ -144,13 +136,13 @@ export default function Accounts() {
       acc && acc.currency && acc.currency.toLowerCase() === selectedCurrency.toLowerCase()
     );
     
-    console.log("(accounts.tsx) -- Current accounts:", accounts);
-    console.log("(accounts.tsx) -- Selected currency:", selectedCurrency);
-    console.log("(accounts.tsx) -- Found account:", account);
+    // console.log("(accounts.tsx) -- Current accounts:", accounts);
+    // console.log("(accounts.tsx) -- Selected currency:", selectedCurrency);
+    // console.log("(accounts.tsx) -- Found account:", account);
     
     if (isLoading) {
       return (
-        <View className="flex-1 justify-center items-center">
+        <View className="flex-1 justify-center items-center"> 
           <ActivityIndicator size="large" color={colors.primary.main} />
         </View>
       );
@@ -160,7 +152,7 @@ export default function Accounts() {
       return (
         <View className="flex-1 justify-center items-center px-4">
           <Text className="text-gray-600 text-center mb-4">
-            You don't have a {selectedCurrency} account yet
+            You don't have a {selectedCurrency} account yet 
           </Text>
           <TouchableOpacity 
             style={{
@@ -279,70 +271,6 @@ export default function Accounts() {
       </View>
     </View>
   );
-
-  // const renderRecentTransactions = () => (
-  //   <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
-  //     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-  //       <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Recent Transactions</Text>
-  //       <TouchableOpacity>
-  //         <Text style={{ fontSize: 14, color: colors.primary.main, fontWeight: '500' }}>View All</Text>
-  //       </TouchableOpacity>
-  //     </View>
-      
-  //     <View style={{ 
-  //       backgroundColor: 'white', 
-  //       borderRadius: 12, 
-  //       padding: 16,
-  //       elevation: 2,
-  //       shadowColor: '#000',
-  //       shadowOffset: { width: 0, height: 2 },
-  //       shadowOpacity: 0.1,
-  //       shadowRadius: 4,
-  //     }}>
-  //       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-  //         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-  //           <View style={{ 
-  //             width: 40, 
-  //             height: 40, 
-  //             borderRadius: 20, 
-  //             backgroundColor: colors.primary.light,
-  //             alignItems: 'center',
-  //             justifyContent: 'center',
-  //             marginRight: 12
-  //           }}>
-  //             <MaterialCommunityIcons name="arrow-up" size={20} color={colors.primary.main} />
-  //           </View>
-  //           <View>
-  //             <Text style={{ fontWeight: '500', color: '#111827' }}>Transfer to John</Text>
-  //             <Text style={{ fontSize: 14, color: '#6B7280' }}>Today, 2:30 PM</Text>
-  //           </View>
-  //         </View>
-  //         <Text style={{ fontWeight: '600', color: '#111827' }}>-₦5,000.00</Text>
-  //       </View>
-        
-  //       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-  //         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-  //           <View style={{ 
-  //             width: 40, 
-  //             height: 40, 
-  //             borderRadius: 20, 
-  //             backgroundColor: '#D1FAE5',
-  //             alignItems: 'center',
-  //             justifyContent: 'center',
-  //             marginRight: 12
-  //           }}>
-  //             <MaterialCommunityIcons name="arrow-down" size={20} color={colors.success.main} />
-  //           </View>
-  //           <View>
-  //             <Text style={{ fontWeight: '500', color: '#111827' }}>Salary Payment</Text>
-  //             <Text style={{ fontSize: 14, color: '#6B7280' }}>Yesterday, 9:00 AM</Text>
-  //           </View>
-  //         </View>
-  //         <Text style={{ fontWeight: '600', color: '#059669' }}>+₦150,000.00</Text>
-  //       </View>
-  //     </View>
-  //   </View>
-  // );
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">

@@ -98,13 +98,23 @@ export default function Home() {
         console.log("Verifying paystack payment...");
         const verificationResult = await api.wallet.verifyPaystackPayment(ref);
   
-        // console.log("Verification result:", verificationResult);
+        console.log("Verification result:", verificationResult);
     
-        if (verificationResult.success) {
+        if (verificationResult.status === "success") {
 
           console.log("Payment verified successfully:");
 
           await AsyncStorage.removeItem('pendingPaymentRef');
+
+          // Update app data with new balance
+          fetchAppDetails();
+          Alert.alert(
+            'Payment Verified',
+            'Your payment has been verified successfully.',
+            [
+              { text: 'OK', onPress: () => router.replace('/(app)/home') }
+            ]
+          );
 
         } 
       } catch (error: unknown) {

@@ -20,10 +20,10 @@ const WalletCard: React.FC<WalletCardProps> = ({
   error = null,
   onPress 
 }) => {
-  // Helper function to check if a value is valid
-  const isValidValue = (value: string) => {
-    return value && value !== '0' && value !== 'undefined' && value !== 'null';
-  };
+  // // Helper function to check if a value is valid
+  // const isValidValue = (value: string) => {
+  //   return value && value !== '0' && value !== 'undefined' && value !== 'null';
+  // };
 
   // Render loading state
   if (loading) {
@@ -103,9 +103,8 @@ const WalletCard: React.FC<WalletCardProps> = ({
             <Text style={{ color: 'white', fontSize: 24 }}>🇳🇬</Text>
           </View>
         </View>
-        
-        {isValidValue(balance) ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
             <View style={{ 
               width: 28, 
               height: 28, 
@@ -121,18 +120,11 @@ const WalletCard: React.FC<WalletCardProps> = ({
               {balance}
             </Text>
           </View>
-        ) : (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-            <MaterialCommunityIcons name="wallet-outline" size={36} color="white" />
-            <Text style={{ fontSize: 18, color: 'white', marginLeft: 8 }}>Not available</Text>
-          </View>
-        )}
         
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
             <Text style={{ color: 'white', fontSize: 14 }}>Income/m</Text>
-            {isValidValue(income) ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ 
                   width: 20, 
                   height: 20, 
@@ -146,18 +138,13 @@ const WalletCard: React.FC<WalletCardProps> = ({
                 </View>
                 <Text style={{ color: 'white', fontWeight: '600' }}>{income}</Text>
               </View>
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons name="arrow-down" size={16} color="white" />
-                <Text style={{ color: 'white', marginLeft: 4 }}>--</Text>
-              </View>
-            )}
+
+            
           </View>
           
           <View>
             <Text style={{ color: 'white', fontSize: 14 }}>Expenses/m</Text>
-            {isValidValue(expenses) ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ 
                   width: 20, 
                   height: 20, 
@@ -171,12 +158,6 @@ const WalletCard: React.FC<WalletCardProps> = ({
                 </View>
                 <Text style={{ color: 'white', fontWeight: '600' }}>{expenses}</Text>
               </View>
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons name="arrow-up" size={16} color="white" />
-                <Text style={{ color: 'white', marginLeft: 4 }}>--</Text>
-              </View>
-            )}
           </View>
         </View>
       </View>
