@@ -57,54 +57,53 @@ export default function KYCScreen() {
     loadCachedData();
   }, []);
 
-  const handleSubmit = () => {
-    // Validate all required fields
-    if (!documentNumber) {
-      setErrorMessage('Please enter your BVN');
-      setShowError(true);
-      return;
-    }
-
-    if (!agreeToTerms) {
-      setErrorMessage('Please agree to the terms and conditions');
-      setShowError(true);
-      return;
-    }
+  const handleSubmit = async () => {
     
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      const res = await api.user.updateKYC(documentType, documentNumber);
+
+      if(res.success) {
+        setShowSuccess(true);
+        setIsLoading(false);
+      } else {
+        setErrorMessage(res.message);
+        setShowError(true);
+        setIsLoading(false);
+      }
+
+    } catch (error: any) {
+      setErrorMessage(error.message);
+      setShowError(true);
       setIsLoading(false);
-      setShowSuccess(true);
-      
-      // Hide success message after 2 seconds and go back
-      setTimeout(() => {
-        setShowSuccess(false);
-        router.back();
-      }, 2000);
-    }, 2000);
+    }
   };
 
-  const handleUploadImage = (type: 'front' | 'back' | 'selfie') => {
-    // In a real app, this would open the image picker
-    // For now, we'll simulate with a timeout
-    setIsLoading(true);
+  // const handleUploadImage = (type: 'front' | 'back' | 'selfie') => {
+  //   // In a real app, this would open the image picker
+  //   // For now, we'll simulate with a timeout
+  //   setIsLoading(true);
     
-    setTimeout(() => {
-      // Mock image URL
-      const mockImageUrl = 'https://via.placeholder.com/300x200';
+  //   setTimeout(() => {
+  //     // Mock image URL
+  //     const mockImageUrl = 'https://via.placeholder.com/300x200';
       
-      if (type === 'front') {
-        setFrontImage(mockImageUrl);
-      } else if (type === 'back') {
-        setBackImage(mockImageUrl);
-      } else {
-        setSelfieImage(mockImageUrl);
-      }
+  //     if (type === 'front') {
+  //       setFrontImage(mockImageUrl);
+  //     } else if (type === 'back') {
+  //       setBackImage(mockImageUrl);
+  //     } else {
+  //       setSelfieImage(mockImageUrl);
+  //     }
       
-      setIsLoading(false);
-    }, 1000);
+  //     setIsLoading(false);
+  //   }, 1000);
+  // };
+
+  // Add validation function
+  const isFormValid = () => {
+    return documentNumber.trim().length === 11 && agreeToTerms;
   };
 
   return (
@@ -152,7 +151,11 @@ export default function KYCScreen() {
           <Button
             title="Verify"
             onPress={handleSubmit}
-            style={styles.nextButton}
+            style={{
+              ...styles.nextButton,
+              backgroundColor: !isFormValid() ? '#E5E7EB' : colors.primary.main
+            }}
+            disabled={!isFormValid()}
           />
         </View>
       </ScrollView>
@@ -318,6 +321,7 @@ const styles = StyleSheet.create({
   nextButton: {
     flex: 1,
     marginLeft: 12,
+    backgroundColor: colors.primary.main,
   },
   termsContainer: {
     marginTop: 24,

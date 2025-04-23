@@ -1,6 +1,6 @@
 // Cards.tsx - Main component file
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
@@ -16,11 +16,10 @@ import CardDetailsModal from '../../components/cards/CardDetailsModal';
 import GenerateCardModal from '../../components/cards/GenerateCardModal';
 import NoCardsView from '../../components/cards/NoCardsView';
 import TransactionHistory from '@/components/TransactionHistory';
-import { ErrorModal } from '@/components/ErrorModal';
+import { ErrorModal } from '@/components/common/ErrorModal';
+import { SuccessModal } from '@/components/SuccessModal';
 
 export default function Cards() {
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [selectedTab, setSelectedTab] = useState<CardType>('virtual');
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -42,6 +41,12 @@ export default function Cards() {
     phoneNumber: '',
   });
   
+  // Modal state variables - matching accounts.tsx pattern
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
   // Get card color based on currency
   const getCardColor = (currency: string) => {
     switch (currency) {
@@ -91,10 +96,14 @@ export default function Cards() {
       } else {
         console.error("Error in response format:", response);
         setFetchedCards([]);
+        setErrorMessage("Failed to load cards data");
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error("Error fetching cards:", error);
       setFetchedCards([]);
+      setErrorMessage(error instanceof Error ? error.message : "Failed to fetch cards");
+      setShowErrorModal(true);
     } finally {
       setIsLoading(false);
     }
@@ -110,22 +119,26 @@ export default function Cards() {
   };
 
   const handleGenerateCard = async () => {
-
+    setShowGenerateCard(false);
+    setIsLoading(true);
     if (!fundingAmount.trim()) {
-      Alert.alert("Error", "Please enter a funding amount");
+      setErrorMessage("Please enter a funding amount");
+      setShowErrorModal(true);
+      
       return;
     }
 
     if (!pin || pin.length !== 4) {
-      Alert.alert("Error", "Please enter a valid 4-digit PIN");
+      setErrorMessage("Please enter a valid 4-digit PIN");
+      setShowErrorModal(true);
       return;
     }
 
-    // For physical cards, validate delivery address
     if (selectedTab === 'physical') {
       const { fullAddress, city, state, phoneNumber } = deliveryAddress;
       if (!fullAddress.trim() || !city.trim() || !state.trim() || !phoneNumber.trim()) {
-        Alert.alert("Error", "Please complete delivery address details");
+        setErrorMessage("Please complete delivery address details");
+        setShowErrorModal(true);
         return;
       }
     }
@@ -133,50 +146,33 @@ export default function Cards() {
     setIsGeneratingCard(true);
 
     try {
-      // Prepare data for API call
       const cardData = {
-        card_name: newCardName.trim(),
-        card_type: selectedTab,
-        card_currency: selectedCurrency,
-        funding_amount: parseFloat(fundingAmount),
+        currency: selectedCurrency.code,
+        funding_amount: fundingAmount,
         pin: pin,
-        ...(selectedTab === 'physical' && { delivery_address: deliveryAddress })
+        ...(selectedTab === 'physical' && { delivery_address: deliveryAddress }),
       };
 
-      // Update the API method to accept and send the card data
-      const cardDataForApi = {
-        currency: cardData.card_currency.code,
-        funding_amount: cardData.funding_amount.toString(),
-        pin: cardData.pin,
-        ...(cardData.card_type === 'physical' && { delivery_address: cardData.delivery_address }),
-      };
-
-      console.log("Card data for API:", cardDataForApi);
-
-      const createdCard = await api.cards.createCard(cardDataForApi);
+      const res = await api.cards.createCard(cardData);
       
-      console.log("Card created successfully:", createdCard);
-      
-      // Refresh cards list to show the new card
-      await fetchCards();
-      
-      // Show success message
-      Alert.alert(
-        "Success", 
-        `Your ${selectedTab} card has been created successfully!`,
-        [{ text: "OK" }]
-      );
-      
-      // Close modal and reset form
-      setShowGenerateCard(false);
-      resetCardFormState();
+      if(res.success) {
+        await fetchCards();
+        setSuccessMessage(`Your ${selectedTab} card has been created successfully!`);
+        setShowSuccessModal(true);
+        setShowGenerateCard(false);
+        resetCardFormState();
+      } else {
+        setErrorMessage(res.message || "Failed to create card");
+        setShowErrorModal(true);
+        setIsLoading(false);
+      }
     } catch (error: any) {
-      const errorMsg = error.message || String(error);
-      setErrorMessage(`Failed to create ${selectedTab} card: ${errorMsg}`);
-      setShowError(true);
-      
+      setErrorMessage(error.message || "An unexpected error occurred while creating your card");
+      setShowErrorModal(true);
+      setIsLoading(false);
     } finally {
       setIsGeneratingCard(false);
+      setIsLoading(false);
     }
   };
 
@@ -197,10 +193,6 @@ export default function Cards() {
   const handleFreezeCard = (card: Card) => {
     setShowDetails(false);
   };
-
-  useEffect(() => {
-    console.log("Error modal state:", { showError, errorMessage });
-  }, [showError, errorMessage]);
 
   // Get the cards for the current selected tab
   const currentTabCards = getCardsByType(selectedTab);
@@ -262,7 +254,8 @@ export default function Cards() {
         <View style={{ paddingHorizontal: 24, flex: 1 }}>
           {isLoading ? (
             <View style={{ paddingVertical: 50, alignItems: 'center' }}>
-              <Text>Loading your cards...</Text>
+              <ActivityIndicator size="large" color={colors.primary.main} />
+              <Text style={{ marginTop: 16, color: '#6B7280' }}>Loading your cards...</Text>
             </View>
           ) : hasCards ? (
             <>
@@ -336,10 +329,20 @@ export default function Cards() {
         isLoading={isGeneratingCard}
       />
 
+      {/* Error and Success Modals - following accounts.tsx pattern */}
       <ErrorModal
-        visible={showError}
-        message={errorMessage}
-        onClose={() => setShowError(false)}
+        visible={showErrorModal}
+        error={errorMessage}
+        onClose={() => setShowErrorModal(false)}
+      />
+
+      <SuccessModal
+        visible={showSuccessModal}
+        title="Card Created"
+        message={successMessage}
+        onClose={() => setShowSuccessModal(false)}
+        autoClose={true}
+        autoCloseTime={3000}
       />
     </SafeAreaView>
   );

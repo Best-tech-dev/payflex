@@ -56,15 +56,30 @@ export default function VTUServices() {
   const [selectedTab, setSelectedTab] = useState<'airtime' | 'data'>('airtime');
   const [showDataBundleModal, setShowDataBundleModal] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<typeof NETWORK_PROVIDERS[0] | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState('08146694787');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [dataBundle, setDataBundle] = useState<{ id: string; name: string; amount: number; dataType: string }[] | null>(null);
-  const [amount, setAmount] = useState('500');
+  const [amount, setAmount] = useState('');
   const [selectedBundle, setSelectedBundle] = useState<{ id: string; name: string; amount: number; data: string; validity: string } | null>();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
   const [airtimeSelectedProvider, setAirtimeSelectedProvider] = useState<string | null>(null);
   const [airtimePhoneNumber, setAirtimePhoneNumber] = useState<string>('');
   const [airtimeAmount, setAirtimeAmount] = useState<string>('');
+
+  // Format amount with currency symbol and commas
+  const parseAmount = (value: string): string => {
+    return value.replace(/[^0-9]/g, '');
+  };
+
+  const formatAmount = (value: string) => {
+    const numericValue = parseAmount(value);
+    if (!numericValue) return '';
+    const formatted = new Intl.NumberFormat('en-NG', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Number(numericValue));
+    return `₦${formatted}`;
+  }
 
   // console.log("Selected provider: ", selectedProvider?.provider);
 
@@ -211,9 +226,16 @@ const handleAirtimeSelectedProvider = async (provider: typeof NETWORK_PROVIDERS[
     }
 
     const network = selectedProvider.provider;
+    const numericAmount = parseAmount(amount);
+    const amountValue = parseFloat(numericAmount);
+    
+    if (!numericAmount || isNaN(amountValue) || amountValue <= 0) {
+      return Alert.alert('Error', 'Please enter a valid amount');
+    }
+
     const data = {
       network,
-      amount: Number(amount),
+      amount: amountValue,
       phone_number: phoneNumber
     };
 
@@ -509,7 +531,7 @@ const handleAirtimeSelectedProvider = async (provider: typeof NETWORK_PROVIDERS[
             <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center', marginBottom: 24 }}>
               {selectedTab === 'airtime' 
                 ? `Your airtime purchase of ₦${amount} for ${phoneNumber} was successful`
-                : `Your data bundle purchase of ${selectedBundle?.amount} for ${phoneNumber} was successful`}
+                : `Your data bundle purchase of #${selectedBundle?.amount} for ${phoneNumber} was successful`}
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
@@ -676,7 +698,7 @@ const handleAirtimeSelectedProvider = async (provider: typeof NETWORK_PROVIDERS[
               placeholder="Enter amount"
               keyboardType="numeric"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(text) => setAmount(formatAmount(text))}
             />
           </View>
         ) : (

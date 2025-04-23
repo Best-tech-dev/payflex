@@ -211,6 +211,22 @@ export const api = {
     //     method: 'PATCH',
     //     body: JSON.stringify(data),
     //   }),
+
+    updateKYC: async (id_type: string, id_number: string) => {
+      console.log("Data to update kyc: ", id_type, id_number);
+      const response = await apiFetch('/user/update-kyc', {
+        method: 'PUT',
+        body: JSON.stringify({ id_type, id_number }),
+      });
+      const res = await response.json();
+
+      if(!res.success) {
+        console.log("Error updating kyc:", res.message);
+        throw new Error(res.message || 'Failed to update kyc');
+      }
+
+      return res.data;
+    }
   },
 
   wallet: {
@@ -385,6 +401,18 @@ export const api = {
       return data.data;
     },
 
+    fetchBanks: async () => {
+      const response = await apiFetch('/banking/fetch-all-banks');
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error fetching banks:", data.message);
+        throw new Error(data.message || 'Failed to fetch banks');
+      }
+
+      return data.data;
+    },
+
     // Create permanent account with flutter wave 
     createPermanentAccount: async () => {
       const response = await apiFetch('/banking/flw/create-permanent-virtual-account', {
@@ -419,7 +447,6 @@ export const api = {
 
     createCard: async (data: {currency: string, funding_amount: string, pin: string}) => {
       try {
-
         const response = await apiFetch('/cards/create', {
           method: 'POST',
           body: JSON.stringify(data),
@@ -427,17 +454,47 @@ export const api = {
         const res = await response.json();
   
         if(!res.success) {
-          console.log("Error creating card:", res.message);
           throw new Error(res.message || 'Failed to create card');
         }
   
         return res.data;
-        
       } catch (error) {
         console.error("Error creating card:", error);
         throw error;
-        
       }
     }
-  }
-};
+  },
+
+  // Bnakings 
+  banking: {
+    verifyAccountNumber: async (account_number: string, bank_code: string) => {
+      const response = await apiFetch('/banking/verify-account-number', {
+        method: 'POST',
+        body: JSON.stringify({ account_number, bank_code }),
+      });
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error verifying account number:", data.message);
+        throw new Error(data.message || 'Failed to verify account number');
+      }
+
+      return data.data;
+    },
+
+    transfer: async (data: any) => {
+      const response = await apiFetch('/banking/send-ngn-money', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      const res = await response.json();
+  
+      if(!res.success) {
+        console.log("Error transferring funds:", res.message);
+        throw new Error(res.message || 'Failed to transfer funds');
+      } 
+  
+      return res.data;
+    }
+  },
+}

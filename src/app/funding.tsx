@@ -9,7 +9,6 @@ import { Loader } from '@/components/Loader';
 import { SuccessModal } from '@/components/SuccessModal';
 import { api } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GeneratedAccountModal } from '@/components/GeneratedAccountModal';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -141,8 +140,9 @@ const handleGenerateAccount = async () => {
   
     try {
       // Input validation
-      const amountValue = parseFloat(amount);
-      if (isNaN(amountValue) || amountValue <= 0) {
+      const numericAmount = parseAmount(amount);
+      const amountValue = parseFloat(numericAmount);
+      if (!numericAmount || isNaN(amountValue) || amountValue <= 0) {
         throw new Error('Please enter a valid amount');
       }
   
@@ -222,7 +222,7 @@ const handleGenerateAccount = async () => {
         name={icon as any}
         size={24}
         color={disabled ? '#9CA3AF' : colors.primary.main}
-        style={{ marginBottom: 8 }}
+        style={{ marginBottom: 16 }}
       />
       <StyledText 
         className={`${disabled ? 'text-gray-400' : 'text-gray-900'} font-medium`}
@@ -245,26 +245,10 @@ const handleGenerateAccount = async () => {
           <StyledView style={{ width: 24 }} />
         </StyledView>
 
-        {/* Account Details */}
-        <StyledView className="m-4 p-6 bg-white rounded-xl opacity-50">
-          <StyledText className="text-gray-600 mb-2">Payflex Account Number</StyledText>
-          <StyledText className="text-2xl font-semibold text-gray-900 mb-1">
-            {accountDetails.accountNumber}
-          </StyledText>
-          <StyledText className="text-gray-600">{accountDetails.accountName}</StyledText>
-        </StyledView>
-
-        {/* Divider */}
-        <StyledView className="flex-row items-center px-4 my-4">
-          <StyledView className="flex-1 h-[1px] bg-gray-200" />
-          <StyledText className="mx-4 text-gray-500">or</StyledText>
-          <StyledView className="flex-1 h-[1px] bg-gray-200" />
-        </StyledView>
-
         {/* Funding Options */}
-        <StyledView className="flex-row px-4 mb-4">
+        <StyledView className="flex-row px-4 mb-4 mt-10">
           <FundingOption
-            title="Card/Bank"
+            title="Card / USSD"
             icon="credit-card-outline"
             onPress={() => setShowAmountModal(true)}
           />
@@ -275,50 +259,24 @@ const handleGenerateAccount = async () => {
           />
         </StyledView>
 
-        {/* Generate Account Option */}
-        <StyledView className="px-4 mb-4 mt-10">
-          <StyledText className="text-gray-600 mb-2">
-            You can generate a one-time account number to fund your wallet with a bank transfer
+        <StyledView className="px-4">
+        <StyledText className="text-gray-600 mb-4 text-sm">
+            If you are paying with user tag, kindly share your tag with another Payflex user to instantly receive funds in your NGN account
           </StyledText>
 
-          {/* Input Box for Amount */}
-          <StyledTextInput
-            className="bg-gray-50 p-4 rounded-xl text-lg mb-4"
-            placeholder="Enter amount (min ₦50)"
-            keyboardType="numeric"
-            value={amount}
-            onChangeText={(text) => {
-              const numericValue = text.replace(/[^0-9]/g, '');
-              const formatted = formatAmount(numericValue);
-              setAmount(formatted);
-            }}
-            editable={!isGenerating}
-          />
+          <StyledView className="flex-row items-center mb-4">
+            <StyledView className="flex-1 h-[1px] bg-gray-200" />
+            <StyledText className="mx-4 text-gray-500">or</StyledText>
+            <StyledView className="flex-1 h-[1px] bg-gray-200" />
+          </StyledView>
 
-          {/* Generate Button */}
           <StyledTouchableOpacity
-            className={`py-4 rounded-xl ${parseInt(amount.replace(/[^0-9]/g, '')) > 50 ? 'bg-[#0066FF]' : 'bg-blue-300'}`}
-            onPress={handleGenerateAccount}
-            disabled={parseInt(amount.replace(/[^0-9]/g, '')) <= 50 || isGenerating}
+            className="py-4 rounded-xl bg-[#0066FF]"
+            onPress={() => router.push('/(app)/accounts')}
           >
-            <StyledText className="text-white text-center font-semibold">Generate</StyledText>
+            <StyledText className="text-white text-center font-semibold">Bank Transfer</StyledText>
           </StyledTouchableOpacity>
         </StyledView>
-
-        {/* Generated Account Modal */}
-        <GeneratedAccountModal
-          visible={showAccountModal}
-          amount={generatedAccount?.amount || ''}
-          accountNumber={generatedAccount?.accountNumber || ''}
-          bank={generatedAccount?.bank || ''}
-          countdown={countdown}
-          onClose={() => {
-            setShowAccountModal(false);
-            setGeneratedAccount(null);
-            setIsGenerating(false);
-          }}
-          onConfirm={handleVerifyPayment}
-        />
 
         {/* Amount Input Modal */}
         <Modal
@@ -342,7 +300,7 @@ const handleGenerateAccount = async () => {
                 placeholder="Enter amount"
                 keyboardType="numeric"
                 value={amount}
-                onChangeText={setAmount}
+                onChangeText={(text) => setAmount(formatAmount(text))}
               />
               <StyledTouchableOpacity
                 className={`py-4 rounded-xl ${amount ? 'bg-[#0066FF]' : 'bg-blue-300'}`}
@@ -366,13 +324,15 @@ const handleGenerateAccount = async () => {
           title="Payment Verified"
           message="Your payment has been successfully verified and your wallet has been funded."
           onClose={() => setShowSuccess(false)}
-          buttonText="Home"
-          onButtonPress={() => router.replace('/(app)/home')}
+          buttons={[{
+            text: "Home",
+            onPress: () => router.replace('/(app)/home'),
+            style: 'primary'
+          }]}
         />
       </StyledSafeAreaView>
     </>
   );
 }
-
 
 

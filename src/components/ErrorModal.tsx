@@ -16,7 +16,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
   message,
   onClose,
 }) => {
-  console.log("Rendering ErrorModal:", { visible, message });
+  // console.log("Rendering ErrorModal:", { visible, message });
   
   return (
     <Modal

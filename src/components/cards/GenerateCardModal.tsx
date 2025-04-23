@@ -25,6 +25,29 @@ interface GenerateCardModalProps {
   isLoading?: boolean;
 }
 
+// Add currency emojis mapping
+const CURRENCY_EMOJIS: Record<string, string> = {
+  USD: '🇺🇸',
+  EUR: '🇪🇺',
+  GBP: '🇬🇧',
+  NGN: '🇳🇬'
+};
+
+// Add amount formatting function
+const formatAmount = (value: string) => {
+  // Remove any non-numeric characters except decimal point
+  const numericValue = value.replace(/[^0-9.]/g, '');
+  
+  // If empty, return empty string
+  if (!numericValue) return '';
+  
+  // Format the number with commas
+  const parts = numericValue.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  return `$${parts.join('.')}`;
+};
+
 const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
   visible,
   cardType,
@@ -49,6 +72,26 @@ const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
       ...deliveryAddress,
       [field]: value
     });
+  };
+
+  // Add validation function
+  const isFormValid = () => {
+    if (!selectedCurrency || !fundingAmount.trim() || !pin || pin.length !== 4) {
+      return false;
+    }
+    if (cardType === 'physical') {
+      const { fullAddress, city, state, phoneNumber } = deliveryAddress;
+      if (!fullAddress.trim() || !city.trim() || !state.trim() || !phoneNumber.trim()) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Add handler for funding amount changes
+  const handleFundingAmountChange = (value: string) => {
+    const formatted = formatAmount(value);
+    setFundingAmount(value.replace(/[^0-9.]/g, ''));
   };
 
   return (
@@ -91,7 +134,7 @@ const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
               />
             </View> */}
             
-            {/* Currency selector */}
+            {/* Currency selector with emojis */}
             <View style={{ marginBottom: 16 }}>
               <Text style={{ marginBottom: 8, fontWeight: '500' }}>Currency</Text>
               <View style={{ 
@@ -105,13 +148,17 @@ const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
                   onValueChange={(itemValue) => setSelectedCurrency(itemValue)}
                 >
                   {AVAILABLE_CURRENCIES.map((currency) => (
-                    <Picker.Item key={currency.code} label={currency.name} value={currency.code} />
+                    <Picker.Item 
+                      key={currency.code} 
+                      label={`${CURRENCY_EMOJIS[currency.code] || ''} ${currency.name}`} 
+                      value={currency.code} 
+                    />
                   ))}
                 </Picker>
               </View>
             </View>
             
-            {/* Funding amount input */}
+            {/* Funding amount input with formatting */}
             <View style={{ marginBottom: 16 }}>
               <Text style={{ marginBottom: 8, fontWeight: '500' }}>Funding Amount</Text>
               <TextInput
@@ -122,8 +169,8 @@ const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
                   padding: 12 
                 }}
                 placeholder={`Enter amount in ${selectedCurrency}`}
-                value={fundingAmount}
-                onChangeText={setFundingAmount}
+                value={formatAmount(fundingAmount)}
+                onChangeText={handleFundingAmountChange}
                 keyboardType="numeric"
               />
             </View>
@@ -234,7 +281,7 @@ const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
               </>
             )}
             
-            {/* Action buttons */}
+            {/* Action buttons with validation */}
             <View style={{ flexDirection: 'row', marginTop: 8 }}>
               <TouchableOpacity
                 style={{ 
@@ -255,18 +302,23 @@ const GenerateCardModal: React.FC<GenerateCardModalProps> = ({
                 style={{ 
                   flex: 1, 
                   padding: 14, 
-                  backgroundColor: colors.primary.main, 
+                  backgroundColor: isFormValid() ? colors.primary.main : '#E5E7EB', 
                   borderRadius: 8,
                   alignItems: 'center',
                   marginLeft: 8
                 }}
                 onPress={onGenerateCard}
-                disabled={isLoading}
+                disabled={isLoading || !isFormValid()}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text style={{ fontWeight: '500', color: 'white' }}>Create Card</Text>
+                  <Text style={{ 
+                    fontWeight: '500', 
+                    color: isFormValid() ? 'white' : '#9CA3AF' 
+                  }}>
+                    Create Card
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

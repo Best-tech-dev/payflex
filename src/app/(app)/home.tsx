@@ -23,11 +23,11 @@ type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 // Quick actions data
 const quickActions: { id: string; title: string; icon: MaterialIconName; route: string }[] = [
+  { id: '2', title: 'Transfer', icon: 'send', route: '/(app)/transfers' },
   { id: '1', title: 'Funding', icon: 'wallet', route: '/funding' },
   { id: '6', title: 'Airtime', icon: 'phone', route: '/vtu' },
   { id: '7', title: 'Data', icon: 'wifi', route: '/vtu' },
   { id: '3', title: 'Convert', icon: 'swap-horizontal', route: '/convert' },
-  { id: '2', title: 'Send', icon: 'send', route: '/send' },
   { id: '11', title: 'Electricity', icon: 'lightning-bolt', route: '/vas/electricity' },
   { id: '9', title: 'TV', icon: 'television', route: '/vas/tv' },
   { id: '10', title: 'Betting', icon: 'dice-multiple', route: '/vas/betting' },
@@ -194,7 +194,7 @@ export default function Home() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Navbar userName={appData?.user?.first_name || '...'} />
+        <Navbar userName={appData?.user?.first_name || '...'} displayPicture={appData?.user?.profile_picture || ''} />
 
         <WalletCard 
           balance={appData?.wallet_card?.current_balance?.toString() || '0'} 

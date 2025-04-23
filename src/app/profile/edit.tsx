@@ -39,7 +39,7 @@ export default function ViewProfileScreen() {
     }
   }, [profileDataString]);
 
-  const handleKYCUpdate = async () => {
+  const handleKYCUpdate = async (idType: string, idNumber: string) => {
     if (!idNumber.trim()) {
       Alert.alert('Error', 'Please enter your ID number');
       return;
@@ -48,7 +48,7 @@ export default function ViewProfileScreen() {
     setIsSubmitting(true);
     try {
       // Here you would call your API to update KYC
-      // const response = await api.user.updateKYC({ idType, idNumber });
+      const response = await api.user.updateKYC(idType, idNumber);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -209,7 +209,7 @@ export default function ViewProfileScreen() {
               />
               <Button
                 title="Submit"
-                onPress={handleKYCUpdate}
+                onPress={() => handleKYCUpdate(idType, idNumber)}
                 style={styles.modalButton}
                 loading={isSubmitting}
               />

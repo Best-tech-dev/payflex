@@ -1,34 +1,30 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { styled } from 'nativewind';
 import { colors } from '@/constants/theme';
 import { Loader } from '@/components/Loader';
+import { SuccessModal } from '@/components/SuccessModal';
+import { BankSelectionModal } from '@/components/BankSelectionModal';
+import { AccountDetailsModal } from '@/components/AccountDetailsModal';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { api } from '@/services/api';
+import { ErrorModal } from '@/components/ErrorModal';
 
-// Nigerian banks data
-const NIGERIAN_BANKS = [
-  { code: '044', name: 'Access Bank' },
-  { code: '063', name: 'Access Bank (Diamond)' },
-  { code: '050', name: 'Ecobank Nigeria' },
-  { code: '070', name: 'Fidelity Bank' },
-  { code: '011', name: 'First Bank of Nigeria' },
-  { code: '214', name: 'First City Monument Bank' },
-  { code: '058', name: 'Guaranty Trust Bank' },
-  { code: '030', name: 'Heritage Bank' },
-  { code: '082', name: 'Keystone Bank' },
-  { code: '076', name: 'Polaris Bank' },
-  { code: '221', name: 'Stanbic IBTC Bank' },
-  { code: '068', name: 'Standard Chartered Bank' },
-  { code: '232', name: 'Sterling Bank' },
-  { code: '100', name: 'Suntrust Bank' },
-  { code: '032', name: 'Union Bank of Nigeria' },
-  { code: '033', name: 'United Bank for Africa' },
-  { code: '215', name: 'Unity Bank' },
-  { code: '035', name: 'Wema Bank' },
-  { code: '057', name: 'Zenith Bank' },
-];
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledTextInput = styled(TextInput);
+const StyledSafeAreaView = styled(SafeAreaView);
 
-type TransferType = 'ngn-ngn' | 'ngn-others';
+type TransferType = 'payflex' | 'other' | 'international';
+
+interface Bank {
+  id: string;
+  code: string;
+  name: string;
+}
 
 // Mock data for recent transfers
 const mockTransfers = [
@@ -74,519 +70,490 @@ const mockTransfers = [
 ];
 
 export default function Transfers() {
-  const [showTransferTypeModal, setShowTransferTypeModal] = useState(false);
-  const [showTransferForm, setShowTransferForm] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showLoading, setShowLoading] = useState(false);
-  const [showBankList, setShowBankList] = useState(false);
-  const [selectedBank, setSelectedBank] = useState<{ code: string; name: string } | null>(null);
+  const [showInitialModal, setShowInitialModal] = useState(true);
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [transferType, setTransferType] = useState<TransferType>('payflex');
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [remark, setRemark] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showAccountDetails, setShowAccountDetails] = useState(false);
+  const [showAmountSection, setShowAmountSection] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const router = useRouter();
 
-  const handleBankSelection = (bank: { code: string; name: string }) => {
-    console.log('Bank selected:', bank.name);
-    setSelectedBank(bank);
-    setShowBankList(false);
-    if (accountNumber.length === 10) {
-      console.log('Account number is 10 digits, triggering verification with bank:', bank);
-      setIsVerifying(true);
-      setTimeout(() => {
-        setAccountName('Mayowa Bernard Oluwaremi');
-        setIsVerifying(false);
-      }, 2500);
-    } else {
-      console.log('Account number not 10 digits yet:', accountNumber.length);
+  // Reset all form data when component unmounts
+  useEffect(() => {
+    return () => {
+      resetForm();
+    };
+  }, []);
+
+  // Reset form when page loses focus
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        resetForm();
+      };
+    }, [])
+  );
+
+  const resetForm = () => {
+    setTransferType('payflex');
+    setShowBankModal(false);
+    setSelectedBank(null);
+    setAccountNumber('');
+    setAccountName('');
+    setAmount('');
+    setRemark('');
+    setIsVerifying(false);
+    setShowAccountDetails(false);
+    setShowAmountSection(false);
+    setIsTransferring(false);
+    setShowSuccess(false);
+  };
+
+  const fetchAllBanks = async () => {
+    try {
+      setIsLoadingBanks(true);
+      const response = await api.accounts.fetchBanks();
+      setBanks(response);
+    } catch (error) {
+      console.error('Error fetching banks:', error);
+    } finally {
+      setIsLoadingBanks(false);
+      console.log("All banks fetched...")
     }
   };
 
-  const verifyAccount = () => {
-    console.log('Verifying account:', { accountNumber, selectedBank });
-    if (accountNumber.length === 10 && selectedBank) {
-      console.log('Starting verification...');
+  const formatAmount = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (!numericValue) return '';
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Number(numericValue));
+  };
+
+  const handleAccountNumberChange = async (account_number: string, bank_code: string) => {
+    setAccountNumber(account_number);
+    setAccountName(''); // Clear the name when editing
+    
+    if (account_number.length === 10 && bank_code) {
       setIsVerifying(true);
-      // Simulate API call to verify account
-      setTimeout(() => {
-        setAccountName('Mayowa Bernard Oluwaremi');
+      try {
+        const response = await api.banking.verifyAccountNumber(account_number, bank_code);
+        console.log("response", response);
+        setAccountName(response);
+      } catch (error: any) {
+        console.error("Error verifying account number:", error.message);
+        setAccountName('Invalid account number');
+      } finally {
         setIsVerifying(false);
-        console.log('Verification complete');
-      }, 2500);
-    } else {
-      console.log('Verification conditions not met:', {
-        accountNumberLength: accountNumber.length,
-        hasSelectedBank: !!selectedBank
-      });
+      }
     }
   };
 
-  const handleTransfer = () => {
-    // Show loading overlay immediately
-    setShowLoading(true);
-    
-    // Close the transfer form
-    setShowTransferForm(false);
-    
-    // Simulate API call with a delay
-    setTimeout(() => {
-      // Hide loading overlay
-      setShowLoading(false);
-      // Show success modal
-      setShowSuccessModal(true);
-      // Reset form
-      setAccountNumber('');
-      setAccountName('');
-      setSelectedBank(null);
-    }, 2000);
+  const handleNext = () => {
+    if (accountName && accountNumber && selectedBank) {
+      setShowAccountDetails(true);
+    }
   };
 
-  const renderTransferTypeModal = () => (
-    <Modal
-      visible={showTransferTypeModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowTransferTypeModal(false)}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-        <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
-          <View style={{ 
-            backgroundColor: 'white', 
-            borderRadius: 16,
-            padding: 24,
-          }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 24,
-            }}>
-              <TouchableOpacity onPress={() => setShowTransferTypeModal(false)}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
-              </TouchableOpacity>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
-                Select Transfer Type
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setShowTransferTypeModal(false)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#EF4444',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <MaterialCommunityIcons name="close" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#F3F4F6',
-                borderRadius: 12,
-                marginBottom: 16,
-              }}
-              onPress={() => {
-                setShowTransferTypeModal(false);
-                setShowTransferForm(true);
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
-                  NGN to NGN Transfer
-                </Text>
-                <Text style={{ color: '#6B7280', fontSize: 14, marginTop: 4 }}>
-                  Transfer within Nigeria
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#6B7280" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#F3F4F6',
-                borderRadius: 12,
-              }}
-              onPress={() => {
-                setShowTransferTypeModal(false);
-                Alert.alert('Coming Soon', 'International transfers will be available soon');
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
-                  NGN to Others
-                </Text>
-                <Text style={{ color: '#6B7280', fontSize: 14, marginTop: 4 }}>
-                  International transfers
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-    </Modal>
-  );
-
-  const renderBankListModal = () => {
-    if (!showBankList) return null;
-
-    return (
-      <View style={{ 
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-      }}>
-        <View style={{ 
-          backgroundColor: 'white', 
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          padding: 20,
-          maxHeight: '80%',
-        }}>
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: 16,
-          }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827' }}>
-              Select Bank
-            </Text>
-            <TouchableOpacity onPress={() => setShowBankList(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#111827" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView>
-            {NIGERIAN_BANKS.map(bank => (
-              <TouchableOpacity
-                key={bank.code}
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 8,
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#E5E7EB',
-                }}
-                onPress={() => handleBankSelection(bank)}
-              >
-                <Text style={{ fontSize: 16, color: '#111827' }}>{bank.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    );
+  const handleConfirmAccount = () => {
+    setShowAccountDetails(false);
+    setShowAmountSection(true);
   };
 
-  const renderTransferForm = () => (
-    <Modal
-      visible={showTransferForm}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowTransferForm(false)}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-        <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
-          <View style={{ 
-            backgroundColor: 'white', 
-            borderRadius: 16,
-            padding: 24,
-          }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 24,
-            }}>
-              <TouchableOpacity 
-                onPress={() => {
-                  setShowTransferForm(false);
-                  setShowTransferTypeModal(true);
-                }}
-                style={{ marginRight: 16 }}
-              >
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
-              </TouchableOpacity>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
-                NGN to NGN Transfer
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setShowTransferForm(false)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#EF4444',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <MaterialCommunityIcons name="close" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
+  const handleTransfer = async () => {
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 4 }}>Account Number</Text>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 16,
-                }}
-                placeholder="Enter account number"
-                keyboardType="numeric"
-                maxLength={10}
-                value={accountNumber}
-                onChangeText={(text) => {
-                  setAccountNumber(text);
-                  if (text.length === 10 && selectedBank) {
-                    verifyAccount();
-                  }
-                }}
-              />
-            </View>
+    setIsTransferring(true);
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 4 }}>Select Bank</Text>
-              <TouchableOpacity
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                  borderRadius: 8,
-                  padding: 12,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-                onPress={() => setShowBankList(true)}
-              >
-                <Text style={{ color: selectedBank ? '#111827' : '#9CA3AF', fontSize: 16 }}>
-                  {selectedBank ? selectedBank.name : 'Select bank'}
-                </Text>
-                <MaterialCommunityIcons name="chevron-down" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
+    const payload = {
+      amount: amount,
+      account_number: accountNumber,
+      beneficiary_name: accountName,
+      bank_code: selectedBank?.code,
+      narration: remark
+    }
 
-            {isVerifying && (
-              <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons name="loading" size={20} color={colors.primary.main} />
-                <Text style={{ marginLeft: 8, color: '#6B7280', fontSize: 14 }}>
-                  Verifying account...
-                </Text>
-              </View>
-            )}
+    console.log("payload", payload);
 
-            {accountName && !isVerifying && (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 4 }}>Account Name</Text>
-                <Text style={{ fontSize: 16, color: '#111827' }}>{accountName}</Text>
-              </View>
-            )}
+    try {
+      const response = await api.banking.transfer(payload);
+      console.log("response", response);
+    } catch (error: any) {
+      console.error("Error transferring funds:", error.message);
+      setShowError(true);
+      setErrorMessage(error.message);
+    } finally {
+      setIsTransferring(false);
+    }
+  };
 
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.primary.main,
-                padding: 16,
-                borderRadius: 12,
-                alignItems: 'center',
-                opacity: accountName && selectedBank ? 1 : 0.5,
-              }}
-              disabled={!accountName || !selectedBank}
-              onPress={handleTransfer}
-            >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Transfer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-      {renderBankListModal()}
-    </Modal>
-  );
+  const handleRepeat = () => {
+    setShowSuccess(false);
+    // Reset form
+    setAccountNumber('');
+    setAccountName('');
+    setAmount('');
+    setRemark('');
+    setSelectedBank(null);
+  };
 
-  const renderSuccessModal = () => (
-    <Modal
-      visible={showSuccessModal}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={() => setShowSuccessModal(false)}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ 
-            backgroundColor: 'white', 
-            borderRadius: 16,
-            padding: 32,
-            alignItems: 'center',
-            width: '100%',
-          }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-              marginBottom: 24,
-            }}>
-              <View style={{ width: 24 }} />
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
-                Transfer Successful
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setShowSuccessModal(false)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#EF4444',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <MaterialCommunityIcons name="close" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-            <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center', marginBottom: 24 }}>
-              Your transfer has been processed successfully
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.primary.main,
-                padding: 16,
-                borderRadius: 12,
-                width: '100%',
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                setShowSuccessModal(false);
-                setAccountNumber('');
-                setAccountName('');
-                setSelectedBank(null);
-              }}
-            >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Exit</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-    </Modal>
-  );
+  const handleHome = () => {
+    setShowSuccess(false);
+    router.push('/(app)/home');
+  };
 
-  const renderRecentTransfers = () => (
-    <View style={{ marginTop: 24 }}>
-      <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>
-        Recent Transfers
-      </Text>
-      {mockTransfers.map(transfer => (
-        <View
-          key={transfer.id}
-          style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.1,
-            shadowRadius: 2,
-            elevation: 2,
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
-                {transfer.beneficiary.name}
-              </Text>
-              <Text style={{ color: '#6B7280', fontSize: 14, marginTop: 4 }}>
-                {transfer.beneficiary.accountNumber} • {transfer.beneficiary.bankName}
-              </Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
-                {transfer.currency} {transfer.amount.toLocaleString()}
-              </Text>
-              <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 4 }}>
-                {new Date(transfer.date).toLocaleDateString()}
-              </Text>
-            </View>
-          </View>
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginTop: 12,
-            paddingTop: 12,
-            borderTopWidth: 1,
-            borderTopColor: '#E5E7EB',
-          }}>
-            <Text style={{ color: '#6B7280', fontSize: 12 }}>
-              Ref: {transfer.reference}
-            </Text>
-            <View style={{ 
-              backgroundColor: transfer.status === 'completed' ? '#D1FAE5' : 
-                            transfer.status === 'failed' ? '#FEE2E2' : '#FEF3C7',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 4,
-            }}>
-              <Text style={{ 
-                color: transfer.status === 'completed' ? '#065F46' : 
-                      transfer.status === 'failed' ? '#B91C1C' : '#92400E',
-                fontSize: 12,
-                textTransform: 'capitalize',
-              }}>
-                {transfer.status}
-              </Text>
-            </View>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
+  const handleTransferTypeSelection = (type: 'ngn' | 'international') => {
+    setShowInitialModal(false);
+    if (type === 'international') {
+      setShowComingSoon(true);
+      setTimeout(() => {
+        setShowComingSoon(false);
+        setShowInitialModal(true);
+      }, 2000);
+    }
+  };
+
+  const handleTransferTypeChange = (type: TransferType) => {
+    setTransferType(type);
+    if (type === 'other' && banks.length === 0) {
+      fetchAllBanks();
+    }
+  };
+
+  const handleBack = () => router.back();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>Transfers</Text>
-      </View>
-
-      <ScrollView style={{ flex: 1, paddingHorizontal: 24 }}>
-        <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.primary.main,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 12,
-            marginBottom: 24,
-          }}
-          onPress={() => setShowTransferTypeModal(true)}
+    <StyledSafeAreaView className="flex-1 bg-gray-50">
+      <StyledView className="px-4 py-4 flex-row items-center">
+        <StyledTouchableOpacity
+          className="mr-4"
+          onPress={handleBack}
         >
-          <MaterialCommunityIcons name="plus" size={20} color="white" />
-          <Text style={{ marginLeft: 8, color: 'white', fontSize: 14, fontWeight: '500' }}>
-            New Transfer
-          </Text>
-        </TouchableOpacity>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary.main} />
+        </StyledTouchableOpacity>
+        <StyledText className="text-2xl font-bold text-gray-900">Bank Transfer</StyledText>
+      </StyledView>
 
-        {renderRecentTransfers()}
+      <ScrollView className="flex-1 px-4">
+        {/* Transfer Type Selection */}
+        <StyledView className="mb-6">
+          <StyledText className="text-gray-600 mb-3">Select Transfer Type</StyledText>
+          <StyledView className="flex-row space-x-4">
+            <StyledTouchableOpacity
+              className={`flex-1 p-4 rounded-xl ${transferType === 'payflex' ? 'bg-[#0066FF]' : 'bg-white'}`}
+              onPress={() => handleTransferTypeChange('payflex')}
+            >
+              <StyledText className={`text-center font-medium ${transferType === 'payflex' ? 'text-white' : 'text-gray-900'}`}>
+                Payflex
+              </StyledText>
+            </StyledTouchableOpacity>
+            <StyledTouchableOpacity
+              className={`flex-1 p-4 rounded-xl ${transferType === 'other' ? 'bg-[#0066FF]' : 'bg-white'}`}
+              onPress={() => handleTransferTypeChange('other')}
+            >
+              <StyledText className={`text-center font-medium ${transferType === 'other' ? 'text-white' : 'text-gray-900'}`}>
+                Other Banks
+              </StyledText>
+            </StyledTouchableOpacity>
+            <StyledTouchableOpacity
+              className={`flex-1 p-4 rounded-xl ${transferType === 'international' ? 'bg-[#0066FF]' : 'bg-white'}`}
+              onPress={() => handleTransferTypeChange('international')}
+            >
+              <StyledText className={`text-center font-medium ${transferType === 'international' ? 'text-white' : 'text-gray-900'}`}>
+                International
+              </StyledText>
+            </StyledTouchableOpacity>
+          </StyledView>
+        </StyledView>
+
+        {transferType === 'international' ? (
+          <StyledView className="items-center justify-center py-8">
+            <MaterialCommunityIcons name="earth" size={48} color={colors.primary.main} />
+            <StyledText className="text-gray-900 font-medium text-lg mt-4">International Transfers</StyledText>
+            <StyledText className="text-gray-600 text-center mt-2">Coming soon! We're working on bringing international transfers to you.</StyledText>
+          </StyledView>
+        ) : (
+          <>
+            {/* Transfer Form */}
+            {transferType === 'other' && !showAmountSection && (
+              <StyledView>
+                <StyledView className="flex-row items-center justify-between mb-4">
+                  <StyledText className="text-gray-900 font-medium">Recipient Account</StyledText>
+                  <StyledTouchableOpacity
+                    className="p-2 rounded-full bg-gray-100"
+                    onPress={() => setTransferType('payflex')}
+                  >
+                    <MaterialCommunityIcons name="arrow-left" size={20} color={colors.primary.main} />
+                  </StyledTouchableOpacity>
+                </StyledView>
+
+                <StyledView className="bg-white rounded-xl p-4 mb-4">
+                  {/* Bank Selection */}
+                  <StyledView className="mb-4">
+                    <StyledText className="text-gray-600 mb-2">Bank</StyledText>
+                    <StyledTouchableOpacity
+                      className="bg-gray-50 p-4 rounded-xl"
+                      onPress={() => setShowBankModal(true)}
+                    >
+                      <StyledView className="flex-row justify-between items-center">
+                        <StyledText className={selectedBank ? 'text-gray-900' : 'text-gray-400'}>
+                          {selectedBank ? selectedBank.name : 'Select Bank'}
+                        </StyledText>
+                        <MaterialCommunityIcons name="chevron-down" size={24} color={colors.primary.main} />
+                      </StyledView>
+                    </StyledTouchableOpacity>
+                  </StyledView>
+
+                  <StyledView className="h-[1px] bg-gray-100 my-4" />
+
+                  {/* Account Number */}
+                  <StyledView>
+                    <StyledText className="text-gray-600 mb-2">Account Number</StyledText>
+                    <StyledTextInput
+                      className="bg-gray-50 p-4 rounded-xl text-lg"
+                      placeholder="Enter account number"
+                      keyboardType="numeric"
+                      maxLength={10}
+                      value={accountNumber}
+                      onChangeText={(text) => {
+                        setAccountNumber(text);
+                        if (text.length === 10 && selectedBank?.code) {
+                          handleAccountNumberChange(text, selectedBank.code);
+                        }
+                      }}
+                      editable={!!selectedBank}
+                    />
+                    {isVerifying && (
+                      <StyledView className="flex-row items-center mt-2">
+                        <MaterialCommunityIcons name="loading" size={20} color={colors.primary.main} />
+                        <StyledText className="text-gray-600 ml-2">Verifying account...</StyledText>
+                      </StyledView>
+                    )}
+                    {accountName && !isVerifying && (
+                      <StyledText 
+                        className={`text-right mt-2 ${
+                          accountName === 'Invalid account number' ? 'text-red-500 text-base' : 'text-primary-main text-lg font-semibold'
+                        }`}
+                      >
+                        {accountName}
+                      </StyledText>
+                    )}
+                  </StyledView>
+                </StyledView>
+
+                {accountName && (
+                  <StyledTouchableOpacity
+                    className="py-4 rounded-xl bg-[#0066FF]"
+                    onPress={handleNext}
+                  >
+                    <StyledText className="text-white text-center font-semibold">Next</StyledText>
+                  </StyledTouchableOpacity>
+                )}
+              </StyledView>
+            )}
+
+            {transferType === 'other' && showAmountSection && (
+              <StyledView>
+                <StyledView className="flex-row items-center justify-between mb-4">
+                  <StyledText className="text-gray-900 font-medium">Transfer Details</StyledText>
+                  <StyledTouchableOpacity
+                    className="p-2 rounded-full bg-gray-100"
+                    onPress={() => {
+                      setShowAmountSection(false);
+                      setShowAccountDetails(false);
+                    }}
+                  >
+                    <MaterialCommunityIcons name="arrow-left" size={20} color={colors.primary.main} />
+                  </StyledTouchableOpacity>
+                </StyledView>
+
+                {/* Account Summary */}
+                <StyledView className="bg-white rounded-xl p-4 mb-6">
+                  <StyledView className="flex-row justify-between items-center mb-3">
+                    <StyledText className="text-gray-500">Account Name</StyledText>
+                    <StyledText className="text-gray-900 font-medium">{accountName}</StyledText>
+                  </StyledView>
+                  <StyledView className="h-[1px] bg-gray-100 my-2" />
+                  <StyledView className="flex-row justify-between items-center mb-3">
+                    <StyledText className="text-gray-500">Account Number</StyledText>
+                    <StyledText className="text-gray-900 font-medium">{accountNumber}</StyledText>
+                  </StyledView>
+                  <StyledView className="h-[1px] bg-gray-100 my-2" />
+                  <StyledView className="flex-row justify-between items-center">
+                    <StyledText className="text-gray-500">Bank</StyledText>
+                    <StyledText className="text-gray-900 font-medium">{selectedBank?.name}</StyledText>
+                  </StyledView>
+                </StyledView>
+
+                {/* Amount */}
+                <StyledView className="bg-white rounded-xl p-4 mb-4">
+                  <StyledText className="text-gray-600 mb-2">Amount</StyledText>
+                  <StyledView className="flex-row items-center bg-gray-50 p-4 rounded-xl">
+                    <StyledText className="text-gray-900 mr-2">₦</StyledText>
+                    <StyledTextInput
+                      className="flex-1 text-lg"
+                      placeholder="Enter amount"
+                      keyboardType="numeric"
+                      value={amount}
+                      onChangeText={(text) => setAmount(formatAmount(text))}
+                    />
+                  </StyledView>
+                </StyledView>
+
+                {/* Remark */}
+                <StyledView className="bg-white rounded-xl p-4 mb-6">
+                  <StyledText className="text-gray-600 mb-2">Remark (Optional)</StyledText>
+                  <StyledTextInput
+                    className="bg-gray-50 p-4 rounded-xl text-lg"
+                    placeholder="Enter remark"
+                    value={remark}
+                    onChangeText={setRemark}
+                  />
+                </StyledView>
+
+                <StyledTouchableOpacity
+                  className={`py-4 rounded-xl ${amount ? 'bg-[#0066FF]' : 'bg-gray-200'}`}
+                  onPress={handleTransfer}
+                  disabled={!amount}
+                >
+                  <StyledText className={`text-center font-semibold ${amount ? 'text-white' : 'text-gray-400'}`}>
+                    Send
+                  </StyledText>
+                </StyledTouchableOpacity>
+              </StyledView>
+            )}
+
+            {transferType === 'payflex' && (
+              <StyledView>
+                <StyledView className="flex-row items-center justify-between mb-4">
+                  <StyledText className="text-gray-900 font-medium">Recipient Details</StyledText>
+                  <StyledTouchableOpacity
+                    className="p-2 rounded-full bg-gray-100"
+                    onPress={() => setTransferType('other')}
+                  >
+                    <MaterialCommunityIcons name="arrow-left" size={20} color={colors.primary.main} />
+                  </StyledTouchableOpacity>
+                </StyledView>
+
+                <StyledView className="bg-white rounded-xl p-4 mb-4">
+                  <StyledView className="mb-4">
+                    <StyledText className="text-gray-600 mb-2">To:</StyledText>
+                    <StyledTextInput
+                      className="bg-gray-50 p-4 rounded-xl text-lg"
+                      placeholder="Enter account number"
+                      keyboardType="numeric"
+                      maxLength={10}
+                      value={accountNumber}
+                      onChangeText={(text) => {
+                        setAccountNumber(text);
+                        if (text.length === 10 && selectedBank?.code) {
+                          handleAccountNumberChange(text, selectedBank.code);
+                        }
+                      }}
+                    />
+                    {isVerifying && (
+                      <StyledView className="flex-row items-center mt-2">
+                        <MaterialCommunityIcons name="loading" size={20} color={colors.primary.main} />
+                        <StyledText className="text-gray-600 ml-2">Verifying account...</StyledText>
+                      </StyledView>
+                    )}
+                    {accountName && !isVerifying && (
+                      <StyledText className="text-right text-primary-main font-semibold text-lg mt-2">
+                        {accountName}
+                      </StyledText>
+                    )}
+                  </StyledView>
+
+                  <StyledView className="h-[1px] bg-gray-100 my-4" />
+
+                  <StyledView className="mb-4">
+                    <StyledText className="text-gray-600 mb-2">Amount:</StyledText>
+                    <StyledTextInput
+                      className="bg-gray-50 p-4 rounded-xl text-lg"
+                      placeholder="Enter amount"
+                      keyboardType="numeric"
+                      value={amount}
+                      onChangeText={(text) => setAmount(formatAmount(text))}
+                    />
+                  </StyledView>
+                </StyledView>
+
+                <StyledTouchableOpacity
+                  className={`py-4 rounded-xl ${accountName && amount ? 'bg-[#0066FF]' : 'bg-gray-200'}`}
+                  onPress={handleTransfer}
+                  disabled={!accountName || !amount}
+                >
+                  <StyledText className={`text-center font-semibold ${accountName && amount ? 'text-white' : 'text-gray-400'}`}>
+                    Transfer
+                  </StyledText>
+                </StyledTouchableOpacity>
+              </StyledView>
+            )}
+          </>
+        )}
       </ScrollView>
 
-      {renderTransferTypeModal()}
-      {renderTransferForm()}
-      {renderSuccessModal()}
-      <Loader visible={showLoading} message="Processing transfer..." />
-    </SafeAreaView>
+      <BankSelectionModal
+        visible={showBankModal}
+        banks={banks}
+        selectedBank={selectedBank}
+        onSelect={(bank) => {
+          setSelectedBank(bank);
+          setShowBankModal(false);
+        }}
+        onClose={() => setShowBankModal(false)}
+      />
+
+      <AccountDetailsModal
+        visible={showAccountDetails}
+        accountName={accountName}
+        accountNumber={accountNumber}
+        bankName={selectedBank?.name || ''}
+        onConfirm={handleConfirmAccount}
+        onClose={() => setShowAccountDetails(false)}
+      />
+
+      <Loader visible={isTransferring} message="Processing Transfer..." />
+      <Loader visible={isLoadingBanks} message="Fetching Banks..." />
+      <SuccessModal
+        visible={showSuccess}
+        title="Transfer Successful"
+        message="Your transfer has been processed successfully"
+        onClose={() => setShowSuccess(false)}
+        autoClose={false}
+        buttons={[
+          {
+            text: 'Repeat',
+            onPress: handleRepeat,
+            style: 'primary'
+          },
+          {
+            text: 'Home',
+            onPress: handleHome,
+            style: 'secondary'
+          }
+        ]}
+      />
+
+      <ErrorModal
+        visible={showError}
+        message={errorMessage}
+        onClose={() => setShowError(false)}
+      />
+    </StyledSafeAreaView>
   );
 }

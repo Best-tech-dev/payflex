@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Animated, ActivityIndicator, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
+
+interface ButtonProps {
+  text: string;
+  onPress: () => void;
+  style: 'primary' | 'secondary';
+}
 
 interface SuccessModalProps {
   visible: boolean;
@@ -10,10 +16,36 @@ interface SuccessModalProps {
   onClose?: () => void;
   autoClose?: boolean;
   autoCloseTime?: number;
-  buttonText?: string;
-  onButtonPress?: () => void;
+  buttons?: ButtonProps[];
   loading?: boolean;
 }
+
+const styles = StyleSheet.create({
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  primaryButton: {
+    backgroundColor: '#0066FF',
+  },
+  secondaryButton: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  buttonText: {
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  primaryButtonText: {
+    color: 'white',
+  },
+  secondaryButtonText: {
+    color: '#374151',
+  },
+});
 
 export function SuccessModal({ 
   visible, 
@@ -22,8 +54,7 @@ export function SuccessModal({
   onClose,
   autoClose = true,
   autoCloseTime = 2000,
-  buttonText = 'Close',
-  onButtonPress,
+  buttons = [],
   loading = false
 }: SuccessModalProps) {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -69,18 +100,31 @@ export function SuccessModal({
           <Text className="text-gray-800 font-bold text-xl mb-2">{title}</Text>
           <Text className="text-gray-600 text-center mb-6">{message}</Text>
           
-          {!autoClose && (
-            <TouchableOpacity 
-              onPress={onButtonPress || onClose}
-              className="bg-primary-main py-3 px-6 rounded-lg"
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-medium">{buttonText}</Text>
-              )}
-            </TouchableOpacity>
+          {!autoClose && buttons.length > 0 && (
+            <View className="flex-row space-x-4 w-full">
+              {buttons.map((button, index) => (
+                <TouchableOpacity 
+                  key={index}
+                  onPress={button.onPress}
+                  style={[
+                    styles.button,
+                    button.style === 'primary' ? styles.primaryButton : styles.secondaryButton
+                  ]}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={button.style === 'primary' ? 'white' : colors.primary.main} />
+                  ) : (
+                    <Text style={[
+                      styles.buttonText,
+                      button.style === 'primary' ? styles.primaryButtonText : styles.secondaryButtonText
+                    ]}>
+                      {button.text}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
         </View>
       </Animated.View>

@@ -42,6 +42,8 @@ export default function Accounts() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const handleBack = () => router.back();
+
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
@@ -136,10 +138,6 @@ export default function Accounts() {
       acc && acc.currency && acc.currency.toLowerCase() === selectedCurrency.toLowerCase()
     );
     
-    // console.log("(accounts.tsx) -- Current accounts:", accounts);
-    // console.log("(accounts.tsx) -- Selected currency:", selectedCurrency);
-    // console.log("(accounts.tsx) -- Found account:", account);
-    
     if (isLoading) {
       return (
         <View className="flex-1 justify-center items-center"> 
@@ -212,6 +210,7 @@ export default function Accounts() {
       <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Quick Actions</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <TouchableOpacity 
+          onPress={() => router.push('/transfers')}
           style={{
             backgroundColor: 'white',
             padding: 16,
@@ -231,6 +230,7 @@ export default function Accounts() {
         </TouchableOpacity>
         
         <TouchableOpacity 
+          onPress={() => router.push('/funding')}
           style={{
             backgroundColor: 'white',
             padding: 16,

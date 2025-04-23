@@ -9,10 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
-  const [firstName, setFirstName] = useState('mayowa');
-  const [lastName, setLastName] = useState('adeyeye');
-  const [email, setEmail] = useState('testing3@gmail.com');
-  const [password, setPassword] = useState('maximus123');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
