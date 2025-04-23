@@ -1,106 +1,86 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StyleSheet, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
 import { Loader } from '@/components/Loader';
 import { SuccessModal } from '@/components/SuccessModal';
 import { router } from 'expo-router';
+import { api } from '@/services/api';
 
-// Mock data for betting providers
-const BETTING_PROVIDERS = [
-  { id: '1', name: 'SportyBet', code: 'SPORTYBET', icon: 'soccer' as const },
-  { id: '2', name: 'Bet9ja', code: 'BET9JA', icon: 'soccer' as const },
-  { id: '3', name: 'BetKing', code: 'BETKING', icon: 'soccer' as const },
-  { id: '4', name: 'NairaBet', code: 'NAIRABET', icon: 'soccer' as const },
-];
-
-// Mock data for betting options
-const BETTING_OPTIONS = {
-  SPORTYBET: [
-    { id: '1', name: 'Fund Wallet', minAmount: 1000, maxAmount: 1000000 },
-    { id: '2', name: 'Withdraw', minAmount: 1000, maxAmount: 1000000 },
-  ],
-  BET9JA: [
-    { id: '1', name: 'Fund Wallet', minAmount: 1000, maxAmount: 1000000 },
-    { id: '2', name: 'Withdraw', minAmount: 1000, maxAmount: 1000000 },
-  ],
-  BETKING: [
-    { id: '1', name: 'Fund Wallet', minAmount: 1000, maxAmount: 1000000 },
-    { id: '2', name: 'Withdraw', minAmount: 1000, maxAmount: 1000000 },
-  ],
-  NAIRABET: [
-    { id: '1', name: 'Fund Wallet', minAmount: 1000, maxAmount: 1000000 },
-    { id: '2', name: 'Withdraw', minAmount: 1000, maxAmount: 1000000 },
-  ],
+// Define the type for betting provider
+type BettingProvider = {
+  provider: string;
+  providerLogoUrl: string;
+  minAmount: string;
+  maxAmount: string;
 };
 
-// Mock customer data
-const MOCK_CUSTOMERS = {
-  '1234567890': { name: 'John Doe', balance: 5000 },
-  '9876543210': { name: 'Jane Smith', balance: 12000 },
-  '5555555555': { name: 'Michael Johnson', balance: 3000 },
-};
+const QUICK_AMOUNTS = [500, 1000, 3000, 5000, 7000, 10000];
 
 export default function Betting() {
-  const [selectedProvider, setSelectedProvider] = useState<typeof BETTING_PROVIDERS[0]>(BETTING_PROVIDERS[0]); // Default to SportyBet
-  const [accountNumber, setAccountNumber] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<BettingProvider | null>(null);
+  const [userId, setUserId] = useState('');
+  const [bettingProviders, setBettingProviders] = useState<BettingProvider[]>([]);
   const [showProviderModal, setShowProviderModal] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<{ id: string; name: string; minAmount: number; maxAmount: number } | null>(null);
-  const [amount, setAmount] = useState('');
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [manualAmount, setManualAmount] = useState('');
   const [showLoading, setShowLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [customerName, setCustomerName] = useState<string | null>(null);
-  const [customerBalance, setCustomerBalance] = useState<number | null>(null);
-  const [isAccountVerified, setIsAccountVerified] = useState(false);
 
-  // Handle account number change
-  const handleAccountChange = (text: string) => {
-    setAccountNumber(text);
-    setIsAccountVerified(false);
-    setCustomerName(null);
-    setCustomerBalance(null);
-  };
-
-  const handleVerify = () => {
-    if (accountNumber.length >= 10) {
-      setShowLoading(true);
-      // Simulate API call to verify account
-      setTimeout(() => {
-        // Check if account exists in mock data
-        const customer = MOCK_CUSTOMERS[accountNumber as keyof typeof MOCK_CUSTOMERS];
-        if (customer) {
-          setCustomerName(customer.name);
-          setCustomerBalance(customer.balance);
-          setIsAccountVerified(true);
-        } else {
-          // For any other number, use a generic name
-          setCustomerName('Customer');
-          setCustomerBalance(0);
-          setIsAccountVerified(true);
-        }
-        setShowLoading(false);
-      }, 2000);
+  useEffect(() => {
+    const getBettingProviders = async () => {
+      const res = await api.vas.getBettingProviders();
+      setBettingProviders(res);
+      // Set SportyBet as default provider
+      const sportyBet = res.find((provider: BettingProvider) => provider.provider.toLowerCase() === 'sportybet');
+      if (sportyBet) {
+        setSelectedProvider(sportyBet);
+      }
     }
+
+    getBettingProviders();
+  }, []);
+
+  // Get placeholder text based on selected provider
+  const getUserIdPlaceholder = () => {
+    if (!selectedProvider) return 'Select a provider first';
+    
+    const provider = selectedProvider.provider.toLowerCase();
+    if (provider.includes('sportybet')) return 'Enter SportyBet phone number';
+    if (provider.includes('bet9ja')) return 'Enter Bet9ja phone number';
+    if (provider.includes('betking')) return 'Enter BetKing phone number';
+    if (provider.includes('betway')) return 'Enter BetWay phone number';
+    if (provider.includes('merrybet')) return 'Enter MerryBet phone number';
+    if (provider.includes('melbet')) return 'Enter MelBet phone number';
+    if (provider.includes('betlion')) return 'Enter BetLion phone number';
+    if (provider.includes('naijabet')) return 'Enter Nairabet phone number';
+    if (provider.includes('bangbet')) return 'Enter BangBet phone number';
+    if (provider.includes('one_xbet')) return 'Enter 1xBet phone number';
+    
+    return `Enter ${selectedProvider.provider} phone number`;
   };
 
   const handleProceed = () => {
-    if (selectedOption && amount && parseInt(amount) >= selectedOption.minAmount && parseInt(amount) <= selectedOption.maxAmount) {
+    if (!selectedProvider) return;
+    
+    const amount = selectedAmount || (manualAmount ? parseFloat(manualAmount) : null);
+    if (amount && amount >= parseFloat(selectedProvider.minAmount) && amount <= parseFloat(selectedProvider.maxAmount)) {
       setShowLoading(true);
       // Simulate API call
       setTimeout(() => {
         setShowLoading(false);
         setShowSuccess(true);
         // Reset form
-        setAccountNumber('');
-        setSelectedProvider(BETTING_PROVIDERS[0]); // Reset to SportyBet
-        setSelectedOption(null);
-        setAmount('');
-        setIsAccountVerified(false);
-        setCustomerName(null);
-        setCustomerBalance(null);
+        setUserId('');
+        setSelectedProvider(null);
+        setSelectedAmount(null);
+        setManualAmount('');
       }, 2000);
     }
   };
+
+  const isUserIdValid = userId.length === 11;
+  const isAmountValid = selectedAmount || (manualAmount && parseFloat(manualAmount) > 0);
 
   const renderProviderModal = () => (
     <View style={styles.modalOverlay}>
@@ -118,89 +98,37 @@ export default function Betting() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView>
-          {BETTING_PROVIDERS.map(provider => (
-            <TouchableOpacity
-              key={provider.id}
-              onPress={() => {
-                setSelectedProvider(provider);
-                setShowProviderModal(false);
-              }}
-              style={styles.providerItem}
-            >
-              <View style={styles.providerIcon}>
-                <MaterialCommunityIcons name={provider.icon} size={24} color={colors.primary.main} />
-              </View>
-              <Text style={styles.providerName}>{provider.name}</Text>
-            </TouchableOpacity>
-          ))}
+        <ScrollView style={styles.modalScrollView}>
+          <View style={styles.providersGrid}>
+            {bettingProviders.map(provider => (
+              <TouchableOpacity
+                key={provider.provider}
+                onPress={() => {
+                  setSelectedProvider(provider);
+                  setShowProviderModal(false);
+                }}
+                style={styles.providerCard}
+              >
+                <View style={styles.providerLogoContainer}>
+                  <Image 
+                    source={{ uri: provider.providerLogoUrl }} 
+                    style={styles.providerLogo}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.providerDetails}>
+                  <Text style={styles.providerName}>{provider.provider}</Text>
+                  <Text style={styles.providerRange}>
+                    ₦{parseFloat(provider.minAmount).toLocaleString()} - ₦{parseFloat(provider.maxAmount).toLocaleString()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </ScrollView>
       </View>
     </View>
   );
-
-  const renderOptions = () => {
-    if (!selectedProvider) return null;
-    
-    const options = BETTING_OPTIONS[selectedProvider.code as keyof typeof BETTING_OPTIONS] || [];
-    
-    return (
-      <View style={styles.optionsContainer}>
-        <Text style={styles.sectionLabel}>Select Option</Text>
-        <View style={styles.optionsGrid}>
-          {options.map(option => (
-            <TouchableOpacity
-              key={option.id}
-              onPress={() => isAccountVerified && setSelectedOption(option)}
-              style={[
-                styles.optionCard, 
-                selectedOption?.id === option.id && styles.selectedOptionCard,
-                !isAccountVerified && styles.disabledOptionCard
-              ]}
-              disabled={!isAccountVerified}
-            >
-              <Text style={styles.optionName}>{option.name}</Text>
-              <Text style={styles.optionRange}>
-                ₦{option.minAmount.toLocaleString()} - ₦{option.maxAmount.toLocaleString()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {selectedOption && isAccountVerified && (
-          <View style={styles.amountContainer}>
-            <Text style={styles.sectionLabel}>Enter Amount</Text>
-            <View style={styles.inputContainer}>
-              <Text style={styles.currencySymbol}>₦</Text>
-              <TextInput
-                placeholder="Enter amount"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-                style={styles.amountInput}
-              />
-            </View>
-            <Text style={styles.amountRange}>
-              Min: ₦{selectedOption.minAmount.toLocaleString()} | Max: ₦{selectedOption.maxAmount.toLocaleString()}
-            </Text>
-            
-            <TouchableOpacity
-              onPress={handleProceed}
-              style={[
-                styles.proceedButton,
-                (!amount || parseInt(amount) < selectedOption.minAmount || parseInt(amount) > selectedOption.maxAmount) && styles.disabledButton
-              ]}
-              disabled={!amount || parseInt(amount) < selectedOption.minAmount || parseInt(amount) > selectedOption.maxAmount}
-            >
-              <Text style={styles.proceedButtonText}>
-                {selectedOption.name === 'Fund Wallet' ? 'Fund Wallet' : 'Withdraw'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -213,46 +141,112 @@ export default function Betting() {
             style={styles.providerSelector}
           >
             <View style={styles.providerInfo}>
-              <View style={styles.providerIcon}>
-                <MaterialCommunityIcons name={selectedProvider.icon} size={24} color={colors.primary.main} />
-              </View>
-              <Text style={styles.selectedProviderName}>{selectedProvider.name}</Text>
+              {selectedProvider ? (
+                <>
+                  <View style={styles.providerIcon}>
+                    <Image 
+                      source={{ uri: selectedProvider.providerLogoUrl }} 
+                      style={styles.providerLogo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.selectedProviderName}>{selectedProvider.provider}</Text>
+                    <Text style={styles.providerRange}>
+                      ₦{parseFloat(selectedProvider.minAmount).toLocaleString()} - ₦{parseFloat(selectedProvider.maxAmount).toLocaleString()}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.placeholderText}>Select a provider</Text>
+              )}
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color="#6B7280" />
           </TouchableOpacity>
         </View>
 
-        {/* Account Number */}
+        {/* User ID Input */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Account Number</Text>
-          <View style={styles.inputContainer}>
+          <Text style={styles.sectionLabel}>User ID</Text>
+          <View style={styles.inputWrapper}>
             <TextInput
-              placeholder="Enter account number"
-              value={accountNumber}
-              onChangeText={handleAccountChange}
+              placeholder={selectedProvider ? getUserIdPlaceholder() : 'Select a provider first'}
+              placeholderTextColor="#9CA3AF"
+              value={userId}
+              onChangeText={setUserId}
               keyboardType="numeric"
-              maxLength={10}
+              maxLength={11}
               style={styles.input}
             />
-            {accountNumber.length >= 10 && (
-              <TouchableOpacity
-                onPress={handleVerify}
-                style={styles.verifyButton}
-              >
-                <Text style={styles.verifyButtonText}>Verify</Text>
-              </TouchableOpacity>
-            )}
           </View>
-          {customerName && (
-            <View style={styles.customerInfo}>
-              <Text style={styles.customerName}>Account: {customerName}</Text>
-              <Text style={styles.customerBalance}>Balance: ₦{customerBalance?.toLocaleString()}</Text>
-            </View>
-          )}
         </View>
 
-        {/* Betting Options */}
-        {selectedProvider && renderOptions()}
+        {/* Quick Amount Buttons */}
+        <View style={[styles.section, !isUserIdValid && styles.disabledSection]}>
+          <Text style={styles.sectionLabel}>Select Amount</Text>
+          <View style={styles.quickAmountsGrid}>
+            {QUICK_AMOUNTS.map((amount) => (
+              <TouchableOpacity
+                key={amount}
+                onPress={() => {
+                  if (isUserIdValid) {
+                    setSelectedAmount(amount);
+                    setManualAmount('');
+                  }
+                }}
+                style={[
+                  styles.quickAmountCard,
+                  selectedAmount === amount && styles.selectedQuickAmountCard,
+                  !isUserIdValid && styles.disabledCard
+                ]}
+                disabled={!isUserIdValid}
+              >
+                <Text style={[styles.quickAmountValue, !isUserIdValid && styles.disabledText]}>
+                  ₦{amount.toLocaleString()}
+                </Text>
+                <Text style={[styles.quickAmountLabel, !isUserIdValid && styles.disabledText]}>
+                  Pay ₦{amount.toLocaleString()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Manual Amount Input */}
+          <View style={styles.manualAmountContainer}>
+            <View style={[styles.manualAmountWrapper, !isUserIdValid && styles.disabledInput]}>
+              <Text style={styles.currencySymbol}>₦</Text>
+              <TextInput
+                placeholder="Enter amount"
+                value={manualAmount}
+                onChangeText={(text) => {
+                  if (isUserIdValid) {
+                    setManualAmount(text);
+                    setSelectedAmount(null);
+                  }
+                }}
+                keyboardType="numeric"
+                style={styles.manualAmountInput}
+                editable={isUserIdValid}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={handleProceed}
+              style={[
+                styles.payButton,
+                (!isAmountValid || !isUserIdValid) && styles.disabledPayButton
+              ]}
+              disabled={!isAmountValid || !isUserIdValid}
+            >
+              <Text style={styles.payButtonText}>Pay</Text>
+            </TouchableOpacity>
+          </View>
+
+          {selectedProvider && (
+            <Text style={styles.amountRange}>
+              Min: ₦{parseFloat(selectedProvider.minAmount).toLocaleString()} | Max: ₦{parseFloat(selectedProvider.maxAmount).toLocaleString()}
+            </Text>
+          )}
+        </View>
       </ScrollView>
 
       {/* Provider Selection Modal */}
@@ -265,7 +259,7 @@ export default function Betting() {
       <SuccessModal 
         visible={showSuccess} 
         title="Success" 
-        message={`Your ${selectedOption?.name.toLowerCase()} request has been processed successfully!`} 
+        message="Your payment has been processed successfully!" 
         onClose={() => setShowSuccess(false)} 
       />
     </SafeAreaView>
@@ -286,6 +280,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionLabel: {
     fontSize: 14,
@@ -318,68 +320,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 56,
   },
   input: {
     flex: 1,
     fontSize: 16,
     color: '#111827',
-  },
-  verifyButton: {
-    backgroundColor: colors.primary.main,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  verifyButtonText: {
-    color: 'white',
-    fontWeight: '500',
-  },
-  customerInfo: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-  },
-  customerName: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  customerBalance: {
-    fontSize: 14,
-    color: '#111827',
-    marginTop: 4,
+    height: '100%',
   },
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
     zIndex: 10,
   },
   modalContent: {
     backgroundColor: 'white',
-    width: '90%',
-    borderRadius: 16,
-    padding: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#111827',
   },
   closeButton: {
@@ -390,64 +368,131 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  providerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+  modalScrollView: {
+    marginTop: 16,
   },
-  providerName: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  optionsContainer: {
-    marginTop: 24,
-  },
-  optionsGrid: {
+  providersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    paddingBottom: 16,
   },
-  optionCard: {
+  providerCard: {
     width: '48%',
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  selectedOptionCard: {
-    borderWidth: 2,
-    borderColor: colors.primary.main,
+  providerLogoContainer: {
+    width: '100%',
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
-  disabledOptionCard: {
-    opacity: 0.5,
+  providerLogo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
-  optionName: {
+  providerDetails: {
+    alignItems: 'center',
+  },
+  providerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  providerRange: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  placeholderText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: '#6B7280',
+  },
+  quickAmountsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  quickAmountCard: {
+    width: '31%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  selectedQuickAmountCard: {
+    borderColor: colors.primary.main,
+    borderWidth: 2,
+    backgroundColor: '#F3F4F6',
+  },
+  quickAmountValue: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
-  optionRange: {
-    fontSize: 14,
+  quickAmountLabel: {
+    fontSize: 12,
     color: '#6B7280',
   },
-  amountContainer: {
-    marginTop: 16,
+  manualAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  amountInput: {
+  manualAmountWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 56,
+    marginRight: 12,
+  },
+  manualAmountInput: {
     flex: 1,
     fontSize: 16,
     color: '#111827',
+    height: '100%',
     marginLeft: 8,
   },
-  currencySymbol: {
+  payButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: 24,
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledPayButton: {
+    backgroundColor: '#D1D5DB',
+  },
+  payButtonText: {
+    color: 'white',
     fontSize: 16,
-    color: '#111827',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   amountRange: {
     fontSize: 12,
@@ -455,19 +500,21 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 16,
   },
-  proceedButton: {
-    backgroundColor: colors.primary.main,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 16,
+  disabledSection: {
+    opacity: 0.5,
   },
-  disabledButton: {
-    backgroundColor: '#D1D5DB',
+  disabledCard: {
+    backgroundColor: '#F3F4F6',
   },
-  proceedButtonText: {
-    color: 'white',
+  disabledText: {
+    color: '#9CA3AF',
+  },
+  disabledInput: {
+    backgroundColor: '#F3F4F6',
+  },
+  currencySymbol: {
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#111827',
+    fontWeight: '500',
   },
 }); 

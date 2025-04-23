@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
 });
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('adeyeye.toyorsi@gmail.com');
-  const [password, setPassword] = useState('maximus123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');

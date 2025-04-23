@@ -383,6 +383,21 @@ export const api = {
     }
   },
 
+  // VAS
+  vas: {
+    getBettingProviders: async () => {
+      const response = await apiFetch('/vas/gb/betting');
+      const data = await response.json();
+
+      if(!data.success) {
+        console.log("Error fetching betting providers:", data.message);
+        throw new Error(data.message || 'Failed to fetch betting providers');
+      }
+
+      return data.data;
+    }
+  },
+
   // Accounts
   accounts: {
     fetchUserAccounts: async () => {
