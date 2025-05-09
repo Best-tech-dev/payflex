@@ -26,22 +26,30 @@ export default function Onboarding() {
     if (currentSlideIndex < onboardingSlides.length - 1) {
       setCurrentSlideIndex(currentSlideIndex + 1);
     } else {
-      // Mark onboarding as complete
-      await AsyncStorage.setItem('has_seen_onboarding', 'true');
-  
+      // Mark both onboarding and first launch as complete
+      await Promise.all([
+        AsyncStorage.setItem('has_seen_onboarding', 'true'),
+        AsyncStorage.setItem('hasLaunched', 'true')
+      ]);
+
       // Explicitly clear authentication state
-      await AsyncStorage.removeItem('access_token');
-      await AsyncStorage.removeItem('pin_setup_complete');
-      await AsyncStorage.removeItem('app_pin');
-  
+      await Promise.all([
+        AsyncStorage.removeItem('access_token'),
+        AsyncStorage.removeItem('pin_setup_complete'),
+        AsyncStorage.removeItem('app_pin')
+      ]);
+
       // Redirect to login
       router.replace('/(auth)/login');
     }
   };
 
   const handleSkip = async () => {
-    // Mark onboarding as complete
-    await AsyncStorage.setItem('has_seen_onboarding', 'true');
+    // Mark both onboarding and first launch as complete
+    await Promise.all([
+      AsyncStorage.setItem('has_seen_onboarding', 'true'),
+      AsyncStorage.setItem('hasLaunched', 'true')
+    ]);
     router.replace('/(auth)/login');
   };
 
@@ -144,4 +152,4 @@ const styles = StyleSheet.create({
     width: 24,
     backgroundColor: '#3B82F6',
   },
-}); 
+});

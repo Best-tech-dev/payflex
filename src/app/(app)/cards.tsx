@@ -1,6 +1,6 @@
-// Cards.tsx - Main component file
+// Cards.tsx - Main component file with NativeWind styling
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
@@ -8,19 +8,18 @@ import { api } from '@/services/api';
 import { 
   Card, 
   CardType, 
-  DeliveryAddress,
   AVAILABLE_CURRENCIES
 } from '../../types/cards';
 import CardItem from "../../components/cards/CardItem";
 import CardDetailsModal from '../../components/cards/CardDetailsModal';
 import GenerateCardModal from '../../components/cards/GenerateCardModal';
 import NoCardsView from '../../components/cards/NoCardsView';
-import TransactionHistory from '@/components/TransactionHistory';
 import { ErrorModal } from '@/components/common/ErrorModal';
 import { SuccessModal } from '@/components/SuccessModal';
+import { router } from 'expo-router';
 
 export default function Cards() {
-  const [selectedTab, setSelectedTab] = useState<CardType>('virtual');
+  // State for card management
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showCardDetails, setShowCardDetails] = useState(false);
@@ -28,20 +27,15 @@ export default function Cards() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingCard, setIsGeneratingCard] = useState(false);
   const [showGenerateCard, setShowGenerateCard] = useState(false);
+  
+  // State for new card creation
   const [newCardName, setNewCardName] = useState('');
   const [newCardAmount, setNewCardAmount] = useState('');
   const [fundingAmount, setFundingAmount] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState(AVAILABLE_CURRENCIES[0]);
   const [pin, setPin] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
-    fullAddress: '',
-    landmark: '',
-    city: '',
-    state: '',
-    phoneNumber: '',
-  });
   
-  // Modal state variables - matching accounts.tsx pattern
+  // Modal state variables
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -66,7 +60,6 @@ export default function Cards() {
     setIsLoading(true);
     try {
       const response = await api.cards.fetchCards();
-      console.log("Cards successfully fetched:");
       
       // Check if response is an array (direct cards data)
       if (Array.isArray(response)) {
@@ -79,9 +72,11 @@ export default function Cards() {
           transactions: [] // Placeholder
         }));
         
-        setFetchedCards(enhancedCards);
+        // Filter to only show virtual cards
+        const virtualCards = enhancedCards.filter(card => card.card_type === 'virtual');
+        setFetchedCards(virtualCards);
       } 
-      // Keep the original logic for response with success/data format
+      // Handle response with success/data format
       else if (response.success && response.data) {
         const enhancedCards = response.data.map((card: Card) => ({
           ...card,
@@ -91,8 +86,9 @@ export default function Cards() {
           transactions: []
         }));
         
-        setFetchedCards(enhancedCards);
-        
+        // Filter to only show virtual cards
+        const virtualCards = enhancedCards.filter((card: Card) => card.card_type === 'virtual');
+        setFetchedCards(virtualCards);
       } else {
         console.error("Error in response format:", response);
         setFetchedCards([]);
@@ -109,11 +105,6 @@ export default function Cards() {
     }
   };
 
-  // Get cards by type from fetched cards
-  const getCardsByType = (type: CardType) => {
-    return fetchedCards.filter(card => card.card_type === type);
-  };
-
   const toggleCardDetails = () => {
     setShowCardDetails(!showCardDetails);
   };
@@ -121,26 +112,19 @@ export default function Cards() {
   const handleGenerateCard = async () => {
     setShowGenerateCard(false);
     setIsLoading(true);
+    
     if (!fundingAmount.trim()) {
       setErrorMessage("Please enter a funding amount");
       setShowErrorModal(true);
-      
+      setIsLoading(false);
       return;
     }
 
     if (!pin || pin.length !== 4) {
       setErrorMessage("Please enter a valid 4-digit PIN");
       setShowErrorModal(true);
+      setIsLoading(false);
       return;
-    }
-
-    if (selectedTab === 'physical') {
-      const { fullAddress, city, state, phoneNumber } = deliveryAddress;
-      if (!fullAddress.trim() || !city.trim() || !state.trim() || !phoneNumber.trim()) {
-        setErrorMessage("Please complete delivery address details");
-        setShowErrorModal(true);
-        return;
-      }
     }
 
     setIsGeneratingCard(true);
@@ -150,26 +134,22 @@ export default function Cards() {
         currency: selectedCurrency.code,
         funding_amount: fundingAmount,
         pin: pin,
-        ...(selectedTab === 'physical' && { delivery_address: deliveryAddress }),
       };
 
       const res = await api.cards.createCard(cardData);
       
       if(res.success) {
         await fetchCards();
-        setSuccessMessage(`Your ${selectedTab} card has been created successfully!`);
+        setSuccessMessage("Your virtual card has been created successfully!");
         setShowSuccessModal(true);
-        setShowGenerateCard(false);
         resetCardFormState();
       } else {
         setErrorMessage(res.message || "Failed to create card");
         setShowErrorModal(true);
-        setIsLoading(false);
       }
     } catch (error: any) {
       setErrorMessage(error.message || "An unexpected error occurred while creating your card");
       setShowErrorModal(true);
-      setIsLoading(false);
     } finally {
       setIsGeneratingCard(false);
       setIsLoading(false);
@@ -181,103 +161,119 @@ export default function Cards() {
     setNewCardAmount('');
     setFundingAmount('');
     setPin('');
-    setDeliveryAddress({
-      fullAddress: '',
-      landmark: '',
-      city: '',
-      state: '',
-      phoneNumber: '',
-    });
   };
 
   const handleFreezeCard = (card: Card) => {
     setShowDetails(false);
+    // Implementation for freezing card would go here
   };
 
-  // Get the cards for the current selected tab
-  const currentTabCards = getCardsByType(selectedTab);
-  const hasCards = currentTabCards.length > 0;
+  // Get virtual cards
+  const virtualCards = fetchedCards.filter(card => card.card_type === 'virtual');
+  const hasCards = virtualCards.length > 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <ScrollView style={{ flex: 1 }}>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <ScrollView className="flex-1">
         {/* Header */}
-        <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>Cards</Text>
+        <View className="px-6 pt-6 pb-4">
+          <Text className="text-3xl font-bold text-gray-900">Virtual Cards</Text>
+          <Text className="text-base text-gray-500 mt-1">Create and manage your virtual cards</Text>
         </View>
         
-        {/* Tabs */}
-        <View style={{ 
-          flexDirection: 'row', 
-          paddingHorizontal: 24, 
-          marginBottom: 24,
-          borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
-        }}>
-          <TouchableOpacity 
-            style={{ 
-              flex: 1, 
-              paddingVertical: 12,
-              borderBottomWidth: 2,
-              borderBottomColor: selectedTab === 'virtual' ? colors.primary.main : 'transparent',
-            }}
-            onPress={() => setSelectedTab('virtual')}
-          >
-            <Text style={{ 
-              textAlign: 'center', 
-              color: selectedTab === 'virtual' ? colors.primary.main : '#6B7280',
-              fontWeight: selectedTab === 'virtual' ? '600' : '400',
-            }}>
-              Virtual Cards
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={{ 
-              flex: 1, 
-              paddingVertical: 12,
-              borderBottomWidth: 2,
-              borderBottomColor: selectedTab === 'physical' ? colors.primary.main : 'transparent',
-            }}
-            onPress={() => setSelectedTab('physical')}
-          > 
-            <Text style={{ 
-              textAlign: 'center', 
-              color: selectedTab === 'physical' ? colors.primary.main : '#6B7280',
-              fontWeight: selectedTab === 'physical' ? '600' : '400',
-            }}>
-              Physical Cards
-            </Text>
-          </TouchableOpacity>
+        {/* Hero Section */}
+        <View className="px-6 mb-8">
+          {/* Card Preview */}
+          <View className="w-full h-52 bg-indigo-600 rounded-2xl p-6 mb-6 shadow-lg">
+            <View className="w-10 h-7 bg-yellow-300 rounded-sm mb-10" />
+            <Text className="text-white text-xl tracking-wider font-medium mb-10">5399 •••• •••• ••••</Text>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-white text-base font-medium">Virtual Card</Text>
+              <MaterialCommunityIcons name="contactless-payment" size={24} color="white" />
+            </View>
+          </View>
+          
+          {/* Features */}
+          <View className="mt-6">
+            <Text className="text-lg font-semibold text-gray-900 mb-4">Benefits of Virtual Cards</Text>
+            <View className="bg-white rounded-xl p-4 shadow">
+              <View className="flex-row items-center py-3 border-b border-gray-100">
+                <MaterialCommunityIcons name="shield-check-outline" size={24} color={colors.primary.main} />
+                <Text className="ml-3 text-base text-gray-700 flex-1">Enhanced security for online purchases</Text>
+              </View>
+              <View className="flex-row items-center py-3 border-b border-gray-100">
+                <MaterialCommunityIcons name="earth" size={24} color={colors.primary.main} />
+                <Text className="ml-3 text-base text-gray-700 flex-1">Globally accepted at millions of merchants</Text>
+              </View>
+              <View className="flex-row items-center py-3 border-b border-gray-100">
+                <MaterialCommunityIcons name="currency-usd" size={24} color={colors.primary.main} />
+                <Text className="ml-3 text-base text-gray-700 flex-1">Multiple currency options available</Text>
+              </View>
+              <View className="flex-row items-center py-3">
+                <MaterialCommunityIcons name="rocket-launch" size={24} color={colors.primary.main} />
+                <Text className="ml-3 text-base text-gray-700 flex-1">Instant issuance with no waiting period</Text>
+              </View>
+            </View>
+          </View>
         </View>
+        
+        {/* Create Card Button (only show if no cards) */}
+        {!hasCards && (
+          <TouchableOpacity 
+            style={{
+              backgroundColor: '#4F46E5',
+              borderRadius: 16,
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+              marginHorizontal: 24,
+              marginBottom: 24,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}
+            onPress={() => router.navigate('/create-card-info')}
+          >
+            <Text className="text-white text-base font-semibold">Create Virtual Card</Text>
+          </TouchableOpacity>
+        )}
         
         {/* Cards List or No Cards View */}
-        <View style={{ paddingHorizontal: 24, flex: 1 }}>
+        {/* <View className="px-6">
+          <Text className="text-xl font-semibold text-gray-900 mb-4">Your Cards</Text>
+          
           {isLoading ? (
-            <View style={{ paddingVertical: 50, alignItems: 'center' }}>
+            <View className="py-10 items-center">
               <ActivityIndicator size="large" color={colors.primary.main} />
-              <Text style={{ marginTop: 16, color: '#6B7280' }}>Loading your cards...</Text>
+              <Text className="mt-4 text-gray-500">Loading your cards...</Text>
             </View>
           ) : hasCards ? (
             <>
               <TouchableOpacity 
-                style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  backgroundColor: colors.primary.main, 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#4F46E5',
                   paddingHorizontal: 16,
-                  paddingVertical: 12, 
-                  borderRadius: 12,
-                  marginBottom: 16,
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  marginBottom: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 5,
                 }}
-                onPress={() => setShowGenerateCard(true)}
+                onPress={() => router.navigate('/create-card-info')}
               >
                 <MaterialCommunityIcons name="plus" size={20} color="white" />
-                <Text style={{ marginLeft: 8, color: 'white', fontSize: 14, fontWeight: '500' }}>
-                  Create New {selectedTab === 'virtual' ? 'Virtual' : 'Physical'} Card
-                </Text>
+                <Text className="ml-2 text-white text-base font-medium">Create New Virtual Card</Text>
               </TouchableOpacity>
               
-              {currentTabCards.map(card => (
+              {virtualCards.map(card => (
                 <CardItem 
                   key={card.id}
                   card={card}
@@ -292,11 +288,11 @@ export default function Cards() {
             </>
           ) : (
             <NoCardsView
-              cardType={selectedTab}
+              cardType="virtual"
               onCreateCard={() => setShowGenerateCard(true)}
             />
           )}
-        </View>
+        </View> */}
       </ScrollView>
       
       {/* Modals */}
@@ -308,28 +304,8 @@ export default function Cards() {
         onClose={() => setShowDetails(false)}
         onFreezeCard={handleFreezeCard}
       />
-      
-      <GenerateCardModal 
-        visible={showGenerateCard}
-        cardType={selectedTab}
-        cardName={newCardName}
-        setCardName={setNewCardName}
-        cardAmount={newCardAmount}
-        setCardAmount={setNewCardAmount}
-        fundingAmount={fundingAmount}
-        setFundingAmount={setFundingAmount}
-        selectedCurrency={selectedCurrency.code}
-        setSelectedCurrency={(currency) => setSelectedCurrency(AVAILABLE_CURRENCIES.find(c => c.code === currency) || AVAILABLE_CURRENCIES[0])}
-        pin={pin}
-        setPin={setPin}
-        deliveryAddress={deliveryAddress}
-        setDeliveryAddress={setDeliveryAddress}
-        onClose={() => setShowGenerateCard(false)}
-        onGenerateCard={handleGenerateCard}
-        isLoading={isGeneratingCard}
-      />
 
-      {/* Error and Success Modals - following accounts.tsx pattern */}
+      {/* Error and Success Modals */}
       <ErrorModal
         visible={showErrorModal}
         error={errorMessage}

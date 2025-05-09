@@ -4,15 +4,14 @@ import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppPin } from '@/contexts/AppPinContext';
+import { AppState } from 'react-native';
 
 export default function Index() {
-  // console.log("App State: ", AppState.currentState); // I get this "App State:  inactive" when I open the app
+  console.log("App State: ", AppState.currentState); // I get this "App State:  inactive" when I open the app
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, checkAuth } = useAuth();
   const { isPinSet } = useAppPin();
-
-  
 
   useEffect(() => {
     const initialize = async () => {
@@ -37,6 +36,7 @@ export default function Index() {
   
       if (hasLaunched === null) {
         await AsyncStorage.setItem('hasLaunched', 'true');
+        console.log("'has_launched and is_first_launch': set complete in async storage.")
         setIsFirstLaunch(true);
       } else if (!hasSeenOnboarding) {
         setIsFirstLaunch(true);
@@ -76,6 +76,6 @@ export default function Index() {
   }
 
   // If authenticated and PIN is set, go to PIN verification
-  // return <Redirect href="/(auth)/pin-verify" />;
-} 
+  return <Redirect href="/(auth)/pin-verify" />;
+}
 

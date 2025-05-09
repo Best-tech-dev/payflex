@@ -23,15 +23,15 @@ type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 // Quick actions data
 const quickActions: { id: string; title: string; icon: MaterialIconName; route: string }[] = [
-  { id: '2', title: 'Transfer', icon: 'send', route: '/(app)/transfers' },
-  { id: '1', title: 'Funding', icon: 'wallet', route: '/funding' },
+  // { id: '2', title: 'Transfer', icon: 'send', route: '/(app)/transfers' },
+  // { id: '1', title: 'Funding', icon: 'wallet', route: '/funding' },
   { id: '6', title: 'Airtime', icon: 'phone', route: '/vtu' },
   { id: '7', title: 'Data', icon: 'wifi', route: '/vtu' },
-  { id: '3', title: 'Convert', icon: 'swap-horizontal', route: '/convert' },
+  // { id: '3', title: 'Convert', icon: 'swap-horizontal', route: '/convert' },
   { id: '11', title: 'Electricity', icon: 'lightning-bolt', route: '/vas/electricity' },
   { id: '9', title: 'TV', icon: 'television', route: '/vas/tv' },
   { id: '10', title: 'Betting', icon: 'dice-multiple', route: '/vas/betting' },
-  { id: '4', title: 'Cards', icon: 'credit-card', route: '/cards' },
+  // { id: '4', title: 'Cards', icon: 'credit-card', route: '/cards' },
   { id: '5', title: 'Bills', icon: 'file-document', route: '/bills' },
   { id: '8', title: 'Giftcards', icon: 'gift', route: '/giftcards' },
   { id: '12', title: 'Education', icon: 'school', route: '/vas/education' },

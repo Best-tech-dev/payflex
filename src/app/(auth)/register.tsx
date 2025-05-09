@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Platform, KeyboardAvoidingView, ScrollView, Keyboard, TouchableWithoutFeedback, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { ErrorModal } from '@/components/common/ErrorModal';
-import { colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -41,7 +51,7 @@ export default function RegisterScreen() {
       await register(firstName, lastName, email, password);
       router.replace({
         pathname: '/(auth)/otp-verification',
-        params: { email }
+        params: { email },
       });
     } catch (error: any) {
       setErrorMessage(error?.message || 'Registration failed');
@@ -60,77 +70,96 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <KeyboardAvoidingView 
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.content}>
-                <View style={styles.header}>
+            <View className="flex-1">
+              <View className="flex-1 p-5 justify-center min-h-[550px]">
+                {/* Header */}
+                <View className="items-center mb-8">
                   <Image
                     source={require('@/assets/images/best-tech.png')}
-                    style={styles.logo}
+                    style={{ width: 80, height: 80, marginBottom: 16 }}
                   />
-                  <Text style={styles.title}>Create Account</Text>
-                  <Text style={styles.subtitle}>Sign up to get started!</Text>
+                  <Text className="text-2xl font-semibold text-gray-900 mb-2">
+                    Create Account
+                  </Text>
+                  <Text className="text-base text-gray-500">
+                    Sign up to get started!
+                  </Text>
                 </View>
 
-                <View style={styles.form}>
-                  <View style={styles.inputWrapper}>
-                    <Text style={styles.inputLabel}>First Name</Text>
+                {/* Form */}
+                <View className="space-y-4">
+                  <View>
+                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                      First Name
+                    </Text>
                     <TextInput
                       value={firstName}
                       onChangeText={setFirstName}
                       placeholder="Enter your first name"
                       autoCapitalize="words"
-                      style={styles.input}
+                      className="bg-white px-4 py-3 rounded-full border border-gray-300 text-base"
                     />
                   </View>
 
-                  <View style={styles.inputWrapper}>
-                    <Text style={styles.inputLabel}>Last Name</Text>
+                  <View>
+                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </Text>
                     <TextInput
                       value={lastName}
                       onChangeText={setLastName}
                       placeholder="Enter your last name"
                       autoCapitalize="words"
-                      style={styles.input}
+                      className="bg-white px-4 py-3 rounded-full border border-gray-300 text-base"
                     />
                   </View>
 
-                  <View style={styles.inputWrapper}>
-                    <Text style={styles.inputLabel}>Email</Text>
+                  <View>
+                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </Text>
                     <TextInput
                       value={email}
                       onChangeText={setEmail}
                       placeholder="Enter your email"
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      style={styles.input}
+                      className="bg-white px-4 py-3 rounded-full border border-gray-300 text-base"
                     />
                   </View>
 
-                  <View style={[styles.inputWrapper, styles.passwordContainer]}>
-                    <Text style={styles.inputLabel}>Password</Text>
-                    <View style={styles.passwordInputContainer}>
+                  <View>
+                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                      Password
+                    </Text>
+                    <View className="relative">
                       <TextInput
                         value={password}
                         onChangeText={setPassword}
                         placeholder="Create a password"
                         secureTextEntry={!showPassword}
-                        style={[styles.input, styles.passwordInput]}
+                        className="bg-white px-4 py-3 rounded-full border border-gray-300 text-base pr-12"
                       />
-                      <TouchableOpacity 
-                        style={styles.eyeIcon} 
-                        onPress={() => setShowPassword(!showPassword)}
+                      <TouchableOpacity
+                        style={{
+                          position: 'absolute',
+                          right: 12,
+                          top: '50%',
+                          transform: [{ translateY: -12 }],
+                        }}
+                        onPress={togglePasswordVisibility}
                       >
                         <MaterialCommunityIcons
                           name={showPassword ? 'eye-off' : 'eye'}
@@ -148,10 +177,15 @@ export default function RegisterScreen() {
                   />
                 </View>
 
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>Already have an account?</Text>
+                {/* Footer */}
+                <View className="mt-8 flex-row justify-center items-center space-x-2">
+                  <Text className="text-sm text-gray-500">
+                    Already have an account?
+                  </Text>
                   <TouchableOpacity onPress={handleLogin}>
-                    <Text style={styles.loginText}>Sign In</Text>
+                    <Text className="text-sm font-semibold text-blue-600">
+                      Sign In
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -168,87 +202,3 @@ export default function RegisterScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    minHeight: Platform.OS === 'ios' ? 600 : 550,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  form: {
-    gap: 6,
-  },
-  inputWrapper: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    fontSize: 16,
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInputContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    paddingRight: 50,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-  },
-  footer: {
-    marginTop: 32,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  footerText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  loginText: {
-    color: '#2563EB',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-}); 

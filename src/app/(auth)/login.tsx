@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
 });
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('bernardmayowaa@gmail.com');
+  const [password, setPassword] = useState('maximus123');
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -84,19 +84,9 @@ export default function LoginScreen() {
       // Clear all AsyncStorage data
       await AsyncStorage.clear();
   
-      Alert.alert(
-        'Success',
-        'App data cleared. Restart the app to see the onboarding screen.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Optionally, you can force the app to navigate to onboarding
-              router.replace('/onboarding');
-            },
-          },
-        ]
-      );
+      router.replace('/onboarding');
+      Alert.alert('Success', 'App data cleared successfully')
+
     } catch (error) {
       console.error('Error clearing app data:', error);
       Alert.alert('Error', 'Failed to clear app data');

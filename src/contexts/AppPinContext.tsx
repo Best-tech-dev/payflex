@@ -33,7 +33,7 @@ export function AppPinProvider({ children }: { children: React.ReactNode }) {
         router.replace('/(auth)/pin-verify'); // Redirect to PIN verification screen
       } else {
         console.log('No PIN set. Proceeding to set up pin page...');
-        router.replace('/(auth)/pin-setup'); // Redirect to home screen
+        router.replace('/(auth)/pin-setup');
       }
     } catch (error) {
       console.error('Error checking PIN status:', error);
