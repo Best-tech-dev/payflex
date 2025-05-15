@@ -76,7 +76,7 @@ export default function LoginScreen() {
   };
 
   const handleRegister = () => {
-    router.push('/(auth)/register');
+    router.push('/(auth)/register/Step1');
   };
 
   const clearAppData = async () => {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { router, useSegments, useRootNavigationState } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppPin } from './AppPinContext';
@@ -26,6 +26,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const resumeTimeout = useRef<NodeJS.Timeout | null>(null);
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -46,23 +48,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [segments, navigationState?.key]);
 
     useEffect(() => {
-      interface AppStateChangeHandler {
-        (nextAppState: string): void;
-      }
-
-      const handleAppStateChange: AppStateChangeHandler = (nextAppState) => {
-        if (
-          (Platform.OS === 'ios' && nextAppState === 'active') ||
-          (Platform.OS === 'android' && 
-           (nextAppState === 'active' || AppState.currentState?.match(/inactive|background/) && nextAppState === 'active'))
-        ) {
-          console.log('App has resumed, current path:', currentRoutePath);
-          handleRoutingOnResume();
+      const handleAppStateChange = (nextAppState: string) => {
+        if (nextAppState === 'active') {
+          if (resumeTimeout.current) {
+            clearTimeout(resumeTimeout.current);
+          }
+    
+          resumeTimeout.current = setTimeout(() => {
+            console.log('App resumed. Debounced route check.');
+            handleRoutingOnResume();
+          }, 300); // Debounce delay in ms
         }
       };
-  
+    
       const subscription = AppState.addEventListener('change', handleAppStateChange);
-      return () => subscription.remove();
+      return () => {
+        subscription.remove();
+        if (resumeTimeout.current) {
+          clearTimeout(resumeTimeout.current);
+        }
+      };
     }, [isAuthenticated, isPinSet, isPinVerified, currentRoutePath]);
 
     const handleRoutingOnResume = () => {
