@@ -5,6 +5,8 @@ import { useAppPin } from './AppPinContext';
 import { AppState, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '@/services/api';
+import { useRegister } from './RegisterContexts';
+import { eventEmitter } from '@/utils/eventEmitter';
 
 const API_URL = 'http://localhost:1000/api/v1';
 // const API_URL = 'https://nestjs-payflex.onrender.com/api/v1';
@@ -15,20 +17,36 @@ interface User {
   name: string;
 }
 
+// Add this with your other interfaces
+interface RegistrationData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string; // Optional fields with ? mark
+  phone_number?: string;
+  gender?: string;
+  country?: string;
+  referral?: string;
+  updatesOptIn?: boolean;
+  agreeToTerms: boolean;
+}
+
+// Then update your AuthContextType interface
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string, profileImage?: string) => Promise<void>;
+  register: (data: RegistrationData) => Promise<void>; // Updated to use the new interface
   logout: () => Promise<void>;
-  checkAuth: () => Promise<boolean>; // Add this function
+  checkAuth: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const resumeTimeout = useRef<NodeJS.Timeout | null>(null);
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const resumeTimeout = useRef<NodeJS.Timeout | null>(null);
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -232,17 +250,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+  const register = async (data: RegistrationData) => {
+    console.log("Registering new user with the following data: ", data);
     try {
-      const res = await api.auth.register(email, password, firstName, lastName,);
-      const data = await res.json();
+      const res = await api.auth.register(
+        {
+          ...data,
+          agreeToterms: data.agreeToTerms || false
+        }
+      );
+      const responseData = await res.json();
   
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Registration failed');
+      if (!res.ok || !responseData.success) {
+        throw new Error(responseData.message || 'Registration failed');
       }
 
-      router.replace('/(auth)/otp-verification');
-  
+      // Remove from AsyncStorage
+      await AsyncStorage.removeItem('register_form_data');
+      
+      // Emit an event that RegisterContext can listen for
+      eventEmitter.emit('registration_success');
+
+      console.log("redirecting to otp-verification")
+      router.replace({
+        pathname: '/(auth)/otp-verification',
+        params: { email: data.email }
+      });
+
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
@@ -282,4 +316,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

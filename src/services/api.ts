@@ -10,6 +10,21 @@ const API_URL = 'http://localhost:1000/api/v1';
 
 const TOKEN_KEY = 'access_token';
 
+// Add this interface at the top of the file or in a separate types file
+interface RegistrationData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  phone?: string;
+  gender?: string;
+  country?: string;
+  referralCode?: string;
+  updatesOptIn?: boolean;
+  agreeToterms: boolean;
+}
+
 // Create a custom fetch function with authentication
 export async function apiFetch(
   endpoint: string,
@@ -123,14 +138,21 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }, false),
 
-    register: (firstName: string, lastName: string, email: string, password: string) =>
+    register: (data: RegistrationData) =>
       apiFetch('/auth/signup', {
         method: 'POST',
         body: JSON.stringify({
-          email,
-          password,
-          first_name: firstName,
-          last_name: lastName,
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          middleName: data.middleName,
+          phone: data.phone,
+          gender: data.gender,
+          country: data.country,
+          referral_code: data.referralCode,
+          updates_opt_in: data.updatesOptIn,
+          agreeToTerms: data.agreeToterms,
         }),
       }, false),
 
@@ -149,8 +171,7 @@ export const api = {
       apiFetch('/auth/refresh', {
         method: 'POST',
       }),
-
-      // 🔥 New forgot-password-related APIs
+      
     sendOtpToEmail: (email: string) =>
       apiFetch('/auth/request-password-reset-email', {
         method: 'POST',
@@ -344,7 +365,7 @@ export const api = {
       return data.data;
     },
 
-    purchaseDataGiftBills: async (data: { plan_id: number; network: string; phone_number: string }) => {
+    purchaseDataGiftBills: async (data: { plan_id: number; network: string; phone: string }) => {
       const response = await apiFetch('/vtu/gb/internet/purchase-data', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -353,7 +374,7 @@ export const api = {
       return result;
     },
 
-    purchaseData: async (data: { plan_id: number; network: string; phone_number: string }) => {
+    purchaseData: async (data: { plan_id: number; network: string; phone: string }) => {
       const response = await apiFetch('/vtu/setsub/purchase-data', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -362,7 +383,7 @@ export const api = {
       return result;
     },
 
-    purchaseAirtime: async (data: { network: string; amount: number; phone_number: string }) => {
+    purchaseAirtime: async (data: { network: string; amount: number; phone: string }) => {
       const response = await apiFetch('/vtu/setsub/purchase-airtime', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -372,7 +393,7 @@ export const api = {
     },
 
     // gift bill
-    purchaseAirtimeGiftbill: async (data: { network: string; amount: number; phone_number: string }) => {
+    purchaseAirtimeGiftbill: async (data: { network: string; amount: number; phone: string }) => {
       console.log("Data to gift bill buy airtime-(api.ts): ", data);
       const response = await apiFetch('/vtu/gb/airtime/topup', {
         method: 'POST',

@@ -1,9 +1,11 @@
 import { Stack } from 'expo-router';
 import { colors } from '@/constants/theme';
+import { RegisterProvider } from '@/contexts/RegisterContexts';
 
 export default function AuthLayout() {
   return (
-    <Stack
+    <RegisterProvider>
+      <Stack
       screenOptions={{
         headerStyle: {
           backgroundColor: colors.background.default,
@@ -49,5 +51,6 @@ export default function AuthLayout() {
         }}
       />
     </Stack>
+    </RegisterProvider>
   );
 } 

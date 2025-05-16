@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { eventEmitter } from '@/utils/eventEmitter';
 
 interface RegisterContextType {
   formData: Record<string, any>;
@@ -13,7 +14,17 @@ const RegisterContext = createContext<RegisterContextType | null>(null);
 export const RegisterProvider = ({ children }: { children: ReactNode }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
 
-  // Load saved form data on mount
+  // Clear form function
+  const clearForm = async () => {
+    setFormData({});
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Error clearing registration form data:', error);
+    }
+  };
+
+  // Load saved form data on mount and listen for events
   useEffect(() => {
     const loadFormData = async () => {
       try {
@@ -27,6 +38,13 @@ export const RegisterProvider = ({ children }: { children: ReactNode }) => {
     };
 
     loadFormData();
+    
+    // Listen for registration success event
+    eventEmitter.on('registration_success', clearForm);
+    
+    return () => {
+      eventEmitter.off('registration_success', clearForm);
+    };
   }, []);
 
   const updateForm = async (newData: Record<string, any>) => {
@@ -38,15 +56,6 @@ export const RegisterProvider = ({ children }: { children: ReactNode }) => {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
     } catch (error) {
       console.error('Error saving registration form data:', error);
-    }
-  };
-
-  const clearForm = async () => {
-    setFormData({});
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      console.error('Error clearing registration form data:', error);
     }
   };
 

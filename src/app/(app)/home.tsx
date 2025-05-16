@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, RefreshControl, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect, usePathname } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppPin } from '@/contexts/AppPinContext';
 import { colors } from '@/constants/theme';
@@ -61,21 +61,41 @@ export default function Home() {
   // Get payment return params
   const newBalance = Array.isArray(params.newBalance) ? params.newBalance[0] : params.newBalance;
 
+  const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+
+    if (!hasFetchedRef.current) {
+      fetchAppDetails();
+      hasFetchedRef.current = true;
+    }
+  }, []);
+
   const fetchAppDetails = async () => {
     if (!isAuthenticated) {
       router.replace('/(auth)/login');
       return;
     }
-
+  
     setLoading(true);
     setError(null);
     try {
-
-      // Fetch fresh data
       const data = await api.user.getAppHomepageDetails();
-      console.log("Homepage data fetched successfully")
+      console.log("Home page fetched data: ", data)
+  
+      // if (!data.user.is_email_verified) {
+      //   Alert.alert(
+      //     'Email not verified',
+      //     'Your email address has not been verified successfully.',
+      //     [
+      //       { text: 'Verify Email', onPress: () => router.replace('/(auth)/otp-verification') }
+      //     ]
+      //   );
+      //   // router.replace('/(auth)/otp-verification');
+      //   return;
+      // }
+  
       setAppData(data);
-
     } catch (error: any) {
       setError(error.message || 'Failed to load app details');
     } finally {
@@ -169,9 +189,9 @@ export default function Home() {
     }, [paymentSuccessParam, messageParam])
   );
 
-  useEffect(() => {
-    fetchAppDetails();
-  }, []);
+  // useEffect(() => {
+  //   fetchAppDetails();
+  // }, []);
 
   const handleSeeAllTransactions = () => {
     router.push('/transactions');

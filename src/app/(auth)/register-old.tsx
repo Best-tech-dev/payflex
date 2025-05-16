@@ -48,7 +48,7 @@ export default function RegisterScreen() {
 
     try {
       setIsLoading(true);
-      await register(firstName, lastName, email, password);
+      // await register(firstName, lastName, email, password);
       router.replace({
         pathname: '/(auth)/otp-verification',
         params: { email },

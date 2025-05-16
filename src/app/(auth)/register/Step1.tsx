@@ -28,15 +28,20 @@ export default function Step1() {
 
   return (
     <View className="flex-1 bg-white p-5">
+      
       {/* Progress indicator */}
-      <View className="flex-row justify-between mb-8 mt-2">
-        {[1, 2, 3, 4].map((step) => (
-          <View 
-            key={step} 
-            className={`h-2 flex-1 mx-1 rounded-full ${step === 1 ? 'bg-blue-600' : 'bg-gray-200'}`}
-          />
-        ))}
-      </View>
+      <View className="flex-row justify-between mb-4 mt-2">
+            {[1, 2, 3, 4].map((step) => (
+              <View key={step} className="flex-1 mx-1">
+                <View 
+                  className={`h-1.5 rounded-full ${step <= 1 ? 'bg-blue-600' : 'bg-gray-200'}`}
+                />
+                <Text className={`text-xs mt-1 text-center ${step <= 1 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>
+                  Step {step}
+                </Text>
+              </View>
+            ))}
+          </View>
       
       <Text className="text-2xl font-bold mb-2">Welcome!</Text>
       <Text className="text-base text-gray-500 mb-6">Let's start by selecting your country of residence</Text>

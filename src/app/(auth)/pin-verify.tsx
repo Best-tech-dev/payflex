@@ -19,10 +19,9 @@ export default function PinVerifyScreen() {
 
   // Log when the component mounts
   useEffect(() => {
-    // console.log('PIN verification screen mounted');
-    // return () => {
-    //   console.log('PIN verification screen unmounted');
-    // };
+    console.log('PIN verification screen mounted');
+    
+    
   }, []);
 
   const handlePinChange = (value: string) => {

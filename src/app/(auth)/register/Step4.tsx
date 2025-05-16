@@ -47,7 +47,7 @@ export default function Step4() {
       const { firstName, surname, email, password } = formData;
       
       // Call the register function from AuthContext
-      await register(email, password, firstName, surname);
+      // await register(email, password, firstName, surname);
       
       // Navigate to OTP verification (the actual API call would happen here)
       router.replace({
@@ -64,13 +64,18 @@ export default function Step4() {
 
   return (
     <View className="flex-1 bg-white p-5">
+      
       {/* Progress indicator */}
-      <View className="flex-row justify-between mb-8 mt-2">
+      <View className="flex-row justify-between mb-8">
         {[1, 2, 3, 4].map((step) => (
-          <View 
-            key={step} 
-            className={`h-2 flex-1 mx-1 rounded-full bg-blue-600`}
-          />
+          <View key={step} className="flex-1 mx-1">
+            <View 
+              className={`h-1.5 rounded-full ${step <= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}
+            />
+            <Text className={`text-xs mt-1 text-center ${step <= 3 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>
+              Step {step}
+            </Text>
+          </View>
         ))}
       </View>
       
